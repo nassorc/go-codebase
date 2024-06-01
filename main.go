@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
-	// rl "github.com/gen2brain/raylib-go/raylib"
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 const MAX_SIGNATURE = 16
@@ -30,7 +30,6 @@ func makeWorldSystem[T *ISystem](w *world) *system[T] {
 	}
 
   // var obj T
-  fmt.Println(">>", reflect.Zero(reflect.TypeOf((*T)(nil)).Elem().Elem()))
 	// w.registerSystem(obj)
   // t := reflect.TypeOf(&obj)
   // zero := reflect.Zero(t)
@@ -74,7 +73,9 @@ func newWorld(entityCapacity int) *world {
 
 func newComponentArray(t reflect.Type) *componentArray {
 	return &componentArray{
-		data: reflect.MakeSlice(reflect.SliceOf(t), 0, 0),
+		data:         reflect.MakeSlice(reflect.SliceOf(t), 0, 0),
+    entityToData: make(map[uint32]int),
+    dataToEntity: make(map[int]uint32),
 	}
 }
 
@@ -155,8 +156,6 @@ func (w *world) registerSystem(system ISystem) int {
 	w.systems = append(w.systems, system)
 	w.systemElemToIdx[sType] = idx
 
-  fmt.Println("adding system", sType, "system:", (w.systems[0]))
-
 	return idx
 }
 
@@ -190,28 +189,30 @@ func (w *world) newEntity(components ...interface{}) Entity {
 
 	for _, component := range components {
 		cType := reflect.TypeOf(component)
+    UNUSED(cType)
+
 		cId := w.getComponentId(component)
+    cValue := reflect.ValueOf(component)
+
 
 		eSignature.Set(cId)
 
-		fmt.Println("adding component", cType, "at", cId)
+    idx := w.componentMap[cId].data.Len()
+    w.componentMap[cId].data = reflect.Append(w.componentMap[cId].data, cValue)
+    w.componentMap[cId].dataToEntity[idx] = entity
+    w.componentMap[cId].entityToData[entity] = idx
 	}
 
 	w.entityToSignature[entity] = eSignature
-
-	fmt.Println("entity signature", eSignature.String())
 
   // add entity to system 
   for _, system := range w.systems {
     sType := reflect.TypeOf(system)
     id := w.systemElemToIdx[sType]
-    fmt.Println("checking system", sType)
-    // sId := (*system).Id()
-    //
+
     sSignature := w.systemIdToSignature[id]
 
     if (eSignature.Int() & sSignature.Int()) == sSignature.Int() {
-      fmt.Println("adding entity", entity)
       system.AddEntity(entity)
     }
   }
@@ -230,15 +231,22 @@ type Pos struct {
 	Y int
 }
 
+type Transform struct {
+  pos rl.Vector2
+  vel rl.Vector2
+}
+
+type Player struct {}
+
 type PlayerSystem struct {
   id       int
 	entities []Entity
 }
 
+
 func (s PlayerSystem) Update(w *world) {
-	fmt.Println("player system update")
   for _, entity := range s.entities {
-    fmt.Println("doing something with entity", entity)
+    UNUSED(entity)
   }
 }
 
@@ -252,10 +260,28 @@ func (s *PlayerSystem) AddEntity(entity Entity) {
   }
 }
 
+func getComponent[T any](w *world, entity Entity) *T {
+  elem := reflect.TypeOf((*T)(nil)).Elem()
+  t := w.elemToComponent[elem]
+  // fmt.Println(w.elemToComponent[t])
+  val, ok := w.componentToId[t]
+  fmt.Println("component id/idx?", val, ok)
+
+  idx := w.componentMap[val].entityToData[entity]
+  fmt.Println("component type", t,"component id", idx)
+  // fmt.Println("entity to data", )
+
+  value := w.componentMap[val].data.Index(idx)
+  out := value.Interface().(T)
+
+  return &out
+}
+
 func main() {
 	world := newWorld(10)
 	Position := makeWorldComponent[Pos](world)
-	fmt.Println(Position)
+	CTransform := makeWorldComponent[Transform](world)
+	CPlayer := makeWorldComponent[Player](world)
 
   playerSystem := PlayerSystem{}
   id := world.registerSystem(&playerSystem)
@@ -263,14 +289,38 @@ func main() {
 	// playerSystem := makeWorldSystem[PlayerSystem](world)
   {
     signature := NewSignature(MAX_SIGNATURE)
-    signature.Set(Position.Id())
+    signature.Set(CTransform.Id())
+    signature.Set(CPlayer.Id())
     world.setSystemSignature(id, signature)
   }
-	//
-	//
-	world.newEntity(Pos{})
-  world.run()
-  fmt.Println(playerSystem)
 
-	UNUSED(fmt.Println, Position, playerSystem)
+
+  player := world.newEntity(Transform{pos: rl.NewVector2(0, 0), vel: rl.NewVector2(5, 0)}, Player{})
+	world.newEntity(Pos{5, 10})
+  UNUSED(player, Position)
+	// world.newEntity(Pos{1000, 10001})
+
+
+
+
+  transform := getComponent[Transform](world, player)
+  fmt.Println("player pos?", transform)
+  // fmt.Println(world.elemToComponent)
+
+
+	UNUSED(fmt.Println, playerSystem)
+	rl.InitWindow(800, 450, "raylib [core] example - basic window")
+	defer rl.CloseWindow()
+
+	rl.SetTargetFPS(60)
+
+	for !rl.WindowShouldClose() {
+    world.run()
+		rl.BeginDrawing()
+
+		rl.ClearBackground(rl.RayWhite)
+		rl.DrawText("Congrats! You created your first window!", 190, 200, 20, rl.LightGray)
+
+		rl.EndDrawing()
+	}
 }
