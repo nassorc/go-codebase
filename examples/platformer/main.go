@@ -9,8 +9,16 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// type IEvent interface {}
+//
+// type PubSub struct {
+//   a map[reflec.Type]
+// }
 
 func main() {
+
+  // eventBus.publish(CollisionEvent{ a: EntityA, b: EntityB })
+
   fmt.Println()
 	rl.InitWindow(960, 640, "raylib [core] example - basic window")
 	defer rl.CloseWindow()

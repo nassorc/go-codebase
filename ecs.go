@@ -3,7 +3,6 @@ package gandalf
 import (
 	"fmt"
 	"reflect"
-
 	// rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -26,10 +25,9 @@ const MAX_SIGNATURE_SIZE = 16
 //   will query all entities with a position and set the system's field with
 //   the current entity.
 
-
 // How systems will be implemented:
-// - Mizu's system implemenation works by defining a system as a struct with 
-//   with actual component type as its fields. The struct's fields describes 
+// - Mizu's system implemenation works by defining a system as a struct with
+//   with actual component type as its fields. The struct's fields describes
 //   what entities the system is interested in. For example,
 /*
 type PhysicsSystem struct {
@@ -52,205 +50,202 @@ type PhysicsSystem struct {
 //   called.
 
 type ISystem interface {
-  Update(w *World)
-  AddEntity(e *Entity)
+	Update(w *World)
+	AddEntity(e *Entity)
 }
 
-
 type Entity struct {
-  id        int
-  world     *World
-  signature *Signature
+	id        int
+	world     *World
+	signature *Signature
 }
 
 func (e *Entity) GetData(components ...interface{}) {
-  for _, component := range components {
-    t := reflect.TypeOf(component)
-    val := reflect.ValueOf(component).Elem()
+	for _, component := range components {
+		t := reflect.TypeOf(component)
+		val := reflect.ValueOf(component).Elem()
 
-    if t.Kind() != reflect.Pointer {
-      panic("Add component failed. Component is not a pointer type.")
-    }
+		if t.Kind() != reflect.Pointer {
+			panic("Add component failed. Component is not a pointer type.")
+		}
 
-    carr := e.world.GetComponentArray(t.Elem())
-    idx := carr.entityToData[e.id]
-    // ptrVal.Set(arr.Index(0).Addr().Elem())
+		carr := e.world.GetComponentArray(t.Elem())
+		idx := carr.entityToData[e.id]
+		// ptrVal.Set(arr.Index(0).Addr().Elem())
 
-    // newPtr := reflect.New(carr.data.Index(idx).Elem().Type())
-    // newPtr.Elem().Set(carr.data.Index(idx).Elem())
-    // val.Set(newPtr)
+		// newPtr := reflect.New(carr.data.Index(idx).Elem().Type())
+		// newPtr.Elem().Set(carr.data.Index(idx).Elem())
+		// val.Set(newPtr)
 
-    val.Set(carr.data.Index(idx).Addr().Elem())
+		val.Set(carr.data.Index(idx).Addr().Elem())
 
-
-    UNUSED(idx)
-  }
+		UNUSED(idx)
+	}
 }
 
 func (e *Entity) setData(components ...interface{}) {
-  for _, component := range components {
-    t := reflect.TypeOf(component)
-    val := reflect.ValueOf(component)
+	for _, component := range components {
+		t := reflect.TypeOf(component)
+		val := reflect.ValueOf(component)
 
-    if t.Kind() != reflect.Pointer {
-      panic("Add component failed. Component is not a pointer type.")
-    }
+		if t.Kind() != reflect.Pointer {
+			panic("Add component failed. Component is not a pointer type.")
+		}
 
-    carr := e.world.GetComponentArray(t)
-    carr.SetData(e.id, val)
-  }
+		carr := e.world.GetComponentArray(t)
+		carr.SetData(e.id, val)
+	}
 }
 
 func NewComponentArray(t reflect.Type) *ComponentArray {
-  return &ComponentArray {
-    data: reflect.MakeSlice(reflect.SliceOf(t), 0, 0),
-    entityToData: make(map[int]int),
-  }
+	return &ComponentArray{
+		data:         reflect.MakeSlice(reflect.SliceOf(t), 0, 0),
+		entityToData: make(map[int]int),
+	}
 }
 
 type ComponentArray struct {
-  data reflect.Value
-  entityToData map[int]int
+	data         reflect.Value
+	entityToData map[int]int
 }
 
 func (c *ComponentArray) AppendData(entityId int, value reflect.Value) {
-  idx := c.data.Len()
-  c.data = reflect.Append(c.data, value)
-  c.entityToData[entityId] = idx
+	idx := c.data.Len()
+	c.data = reflect.Append(c.data, value)
+	c.entityToData[entityId] = idx
 }
 
 func (c *ComponentArray) SetData(entityId int, value reflect.Value) {
-  idx := c.entityToData[entityId]
-  c.data.Index(idx).Set(value)
+	idx := c.entityToData[entityId]
+	c.data.Index(idx).Set(value)
 }
 
 func (c *ComponentArray) GetData(entityId int) reflect.Value {
-    idx := c.entityToData[entityId]
+	idx := c.entityToData[entityId]
 
-    return c.data.Index(idx)
+	return c.data.Index(idx)
 }
 
 func (c *ComponentArray) RemoveEntity(entityId int) {
 }
 
 func NewWorld() *World {
-  return &World{
-    typeToComponent: make(map[reflect.Type]int),
-    availIds: NewRingBuffer[int](10),
+	return &World{
+		typeToComponent: make(map[reflect.Type]int),
+		availIds:        NewRingBuffer[int](10),
 
-    systemIdxToSignature: make(map[int]*Signature),
-  }
+		systemIdxToSignature: make(map[int]*Signature),
+	}
 }
 
 type World struct {
-  components           []*ComponentArray
-  typeToComponent      map[reflect.Type]int
+	components      []*ComponentArray
+	typeToComponent map[reflect.Type]int
 
-  availIds             *ringbuffer[int]
-  Entities             []*Entity
+	availIds *ringbuffer[int]
+	Entities []*Entity
 
-  systems              []*ISystem
-  systemIdxToSignature map[int]*Signature
+	systems              []*ISystem
+	systemIdxToSignature map[int]*Signature
 }
 
 func (w *World) Run() {
-  for _, system := range w.systems {
-    (*system).Update(w)
-  }
+	for _, system := range w.systems {
+		(*system).Update(w)
+	}
 }
 
 func (w *World) RegisterSystem(system ISystem, components ...interface{}) {
-  // t := reflect.TypeOf(system)
-  idx := len(w.systems)
-  w.systems = append(w.systems, &system)
-  sSignature := NewSignature(MAX_SIGNATURE_SIZE)
-  for _, component := range components {
-    id := w.GetComponentId(component)
-    sSignature.Set(id)
-  }
+	// t := reflect.TypeOf(system)
+	idx := len(w.systems)
+	w.systems = append(w.systems, &system)
+	sSignature := NewSignature(MAX_SIGNATURE_SIZE)
+	for _, component := range components {
+		id := w.GetComponentId(component)
+		sSignature.Set(id)
+	}
 
-  w.systemIdxToSignature[idx] = sSignature
+	w.systemIdxToSignature[idx] = sSignature
 }
 
 func (w *World) RegisterComponents(components ...interface{}) {
-  for _, component := range components {
-    t := reflect.TypeOf(component)
+	for _, component := range components {
+		t := reflect.TypeOf(component)
 
-    if t.Kind() != reflect.Pointer {
-      panic("Add component failed. Component is not a pointer type.")
-    }
+		if t.Kind() != reflect.Pointer {
+			panic("Add component failed. Component is not a pointer type.")
+		}
 
-    carr := NewComponentArray(t)
-    idx := len(w.components)
-    w.components = append(w.components, carr)
-    w.typeToComponent[t] = idx
-  }
+		carr := NewComponentArray(t)
+		idx := len(w.components)
+		w.components = append(w.components, carr)
+		w.typeToComponent[t] = idx
+	}
 }
 
 func (w *World) GetComponentId(component interface{}) int {
-    t := reflect.TypeOf(component)
+	t := reflect.TypeOf(component)
 
-    if t.Kind() != reflect.Pointer {
-      panic("Add component failed. Component is not a pointer type.")
-    }
+	if t.Kind() != reflect.Pointer {
+		panic("Add component failed. Component is not a pointer type.")
+	}
 
-    id, ok := w.typeToComponent[t]
+	id, ok := w.typeToComponent[t]
 
-    if !ok {
-      panic(fmt.Sprintf("GetComponentId panicked. type=%v is not a component array", t))
-    }
+	if !ok {
+		panic(fmt.Sprintf("GetComponentId panicked. type=%v is not a component array", t))
+	}
 
-    return id
+	return id
 }
 
 func (w *World) NewEntity(components ...interface{}) *Entity {
-  id, err := Dequeue(w.availIds)
+	id, err := Dequeue(w.availIds)
 
-  if err != nil {
-    panic("Dequeing Entity Id paniced")
-  }
+	if err != nil {
+		panic("Dequeing Entity Id paniced")
+	}
 
-  var eSignature = NewSignature(MAX_SIGNATURE_SIZE)
+	var eSignature = NewSignature(MAX_SIGNATURE_SIZE)
 
-  for _, component := range components {
-    t := reflect.TypeOf(component)
-    val := reflect.ValueOf(component)
+	for _, component := range components {
+		t := reflect.TypeOf(component)
+		val := reflect.ValueOf(component)
 
-    if t.Kind() != reflect.Pointer {
-      panic("Add component failed. Component is not a pointer type.")
-    }
+		if t.Kind() != reflect.Pointer {
+			panic("Add component failed. Component is not a pointer type.")
+		}
 
-    carr := w.GetComponentArray(t)
-    carr.AppendData(id, val)
-    id := w.GetComponentId(component)
+		carr := w.GetComponentArray(t)
+		carr.AppendData(id, val)
+		id := w.GetComponentId(component)
 
-    eSignature.Set(id)
-  }
+		eSignature.Set(id)
+	}
 
-  entity := &Entity{
-    id: id,
-    world: w,
-    signature: eSignature,
-  }
+	entity := &Entity{
+		id:        id,
+		world:     w,
+		signature: eSignature,
+	}
 
-  w.Entities = append(w.Entities, entity)
+	w.Entities = append(w.Entities, entity)
 
-  for idx, signature := range w.systems {
-    sSignature := w.systemIdxToSignature[idx]
+	for idx, signature := range w.systems {
+		sSignature := w.systemIdxToSignature[idx]
 
-    if (eSignature.Int() & sSignature.Int()) == sSignature.Int() {
-      fmt.Println("entity with signature", eSignature.String(), "matched", sSignature.String())
-      (*signature).AddEntity(entity)
-    }
-  }
+		if (eSignature.Int() & sSignature.Int()) == sSignature.Int() {
+			fmt.Println("entity with signature", eSignature.String(), "matched", sSignature.String())
+			(*signature).AddEntity(entity)
+		}
+	}
 
-
-  return entity
+	return entity
 }
 
 func (w *World) GetComponentArray(t reflect.Type) *ComponentArray {
-    cidx := w.typeToComponent[t]
-    return w.components[cidx]
+	cidx := w.typeToComponent[t]
+	return w.components[cidx]
 }
 
 func UNUSED(x ...interface{}) {}

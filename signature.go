@@ -98,9 +98,9 @@ func (s *Signature) Int() int {
 	out := 0
 
 	for idx := 0; idx < len(s.signature); idx++ {
-    if s.signature[idx] {
-      out |= int(math.Pow(2, float64(idx)))
-    }
+		if s.signature[idx] {
+			out |= int(math.Pow(2, float64(idx)))
+		}
 	}
 
 	return out
