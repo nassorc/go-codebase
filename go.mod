@@ -1,6 +1,6 @@
 module gandalf
 
-go 1.22
+go 1.22.3
 
 require github.com/gen2brain/raylib-go/raylib v0.0.0-20240524074310-a997a44fb95b
 
