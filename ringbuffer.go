@@ -1,4 +1,4 @@
-package gandalf
+package main
 
 import (
 	"fmt"

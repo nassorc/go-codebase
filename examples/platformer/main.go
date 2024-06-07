@@ -9,15 +9,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-// type IEvent interface {}
-//
-// type PubSub struct {
-//   a map[reflec.Type]
-// }
-
 func main() {
-
-  // eventBus.publish(CollisionEvent{ a: EntityA, b: EntityB })
 
   fmt.Println()
 	rl.InitWindow(960, 640, "raylib [core] example - basic window")
@@ -25,13 +17,32 @@ func main() {
 	rl.SetTargetFPS(60)
 
   world := gandalf.NewWorld()
-  world.RegisterComponents(&Tag{}, &Transform{}, &Size{}, &Color{}, &Input{})
+  world.RegisterComponents(&Tag{}, &Transform{}, &Size{}, &Color{}, &Input{}, &RigidBody{})
 
   world.RegisterSystem(&InputSystem{})
 
-  player := world.NewEntity(&Transform{ pos: rl.NewVector2(0, 0) }, &Tag{ "player" }, &Size{32, 32}, &Color{rl.Green}, &Input{})
+  player := world.NewEntity(
+    &Transform{ pos: rl.NewVector2(0, 0) }, 
+    &Tag{ "player" }, 
+    &Size{32, 32}, 
+    &Color{rl.Green}, 
+    &Input{}, 
+    &RigidBody{
+      size: rl.NewVector2(32, 32),
+    },
+  )
 
-  // fmt.Println("system", *(world.systems[0]))
+  world.NewEntity(
+    &Transform{ pos: rl.NewVector2(60, 60) }, 
+    &Tag{ "tile" }, 
+    &Size{32, 32}, 
+    &Color{rl.Blue}, 
+    &RigidBody{
+      size: rl.NewVector2(32, 32),
+    },
+  )
+
+  fmt.Println("component", world.Components[0])
 
   var playerTag *Tag
   var playerPos *Transform
@@ -56,6 +67,7 @@ func main() {
       var pos = transform.pos
 
       rl.DrawRectangle(int32(pos.X), int32(pos.Y), int32(size.Width), int32(size.Height), color.c)
+      rl.DrawCircle(int32(pos.X), int32(pos.Y), 2, rl.Red)
     }
 
     rl.DrawText("Congrats! You created your first window!", 190, 200, 20, rl.LightGray)
@@ -78,6 +90,18 @@ func (s *PlayerSystem) Update(w *gandalf.World) {
   // 2. the world keeps a reference to the player, since the player is a special
   // type of entity that would likely be used in many systems.
   // 3. a query system to fetch for specific entities. 
+}
+
+type PhysicsSystem struct {
+  entities []*gandalf.Entity
+}
+
+func (s *PhysicsSystem) Update(w *gandalf.World) {
+
+}
+
+func (s *PhysicsSystem) AddEntity(e *gandalf.Entity) {
+  s.entities = append(s.entities, e)
 }
 
 type InputSystem struct {
@@ -139,9 +163,14 @@ func (s *InputSystem) AddEntity(e *gandalf.Entity) {
   s.entities = append(s.entities, e)
 }
 
+type RigidBody struct {
+  size   rl.Vector2
+  offset rl.Vector2
+}
 
 type Transform struct {
-  pos rl.Vector2
+  pos     rl.Vector2
+  prevPos rl.Vector2
 }
 
 type Tag struct {
