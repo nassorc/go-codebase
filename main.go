@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -152,6 +154,50 @@ func (g *Game) Setup() {
 	g.scene.Setup()
 }
 
+func NewLevelLoader(w *World) *LevelLoader {
+	return &LevelLoader{
+		w,
+	}
+}
+
+type LevelLoader struct {
+	w *World
+}
+
+func (l *LevelLoader) load(path string) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		panic("could not load path")
+	}
+	for _, line := range bytes.Split(content, []byte("\n")) {
+		fmt.Println("line", string(line))
+		args := bytes.Split(line, []byte(" "))
+
+		if string(args[0]) == "Box" {
+			x, err := strconv.Atoi(string(args[1]))
+			if err != nil {
+				panic("could not convert point to int")
+			}
+			y, err := strconv.Atoi(string(args[2]))
+			if err != nil {
+				panic("could not convert point to int")
+			}
+
+			pos := rl.NewVector2(float32(100+(x*64)), float32(100+(y*64)))
+
+			l.w.NewEntity(
+				&Transform{pos: pos, prevPos: pos},
+				&Tag{"tile"},
+				&Size{64, 64},
+				&Color{rl.Green},
+				&RigidBody{
+					size: rl.NewVector2(64, 64),
+				},
+			)
+		}
+	}
+}
+
 func main() {
 	engine := NewEngine("./config.json", NewJsonConfigParser())
 
@@ -283,13 +329,6 @@ func NewWorld() *World {
 		availIds:             rb,
 		systemIdxToSignature: make(map[int]*Signature),
 	}
-}
-
-type LevelLoader struct {
-	w *World
-}
-
-func (l *LevelLoader) loadLevel(path string) {
 }
 
 type World struct {

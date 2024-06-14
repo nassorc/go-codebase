@@ -5,12 +5,12 @@ import (
 )
 
 type PlayerScene struct {
-  world *World
+	world *World
 }
 
 func (s *PlayerScene) Setup() {
 	world := NewWorld()
-  s.world = world;
+	s.world = world
 
 	world.RegisterAction(rl.KeyW, "Up")
 	world.RegisterAction(rl.KeyS, "Down")
@@ -113,29 +113,33 @@ func (s *PlayerScene) Setup() {
 		textureWidth  float32 = 32
 		textureHeight float32 = 48
 	)
+
+	LevelLoader := NewLevelLoader(world)
+	LevelLoader.load("./level1.txt")
+
 	UNUSED(currentFrame, textureWidth, textureHeight, witch, frameCount, frames)
 }
 
 func (s *PlayerScene) Update() {
-  s.world.Run()
+	s.world.Run()
 }
 
 func (s *PlayerScene) Render() {
 	for _, entity := range s.world.Entities {
-			var size *Size
-			var transform *Transform
-			var color *Color
-			var rigidBody *RigidBody
+		var size *Size
+		var transform *Transform
+		var color *Color
+		var rigidBody *RigidBody
 
-			entity.GetData(&size, &transform, &color, &rigidBody)
+		entity.GetData(&size, &transform, &color, &rigidBody)
 
-			var pos = transform.pos
+		var pos = transform.pos
 
-			rl.DrawRectangle(int32(pos.X), int32(pos.Y), int32(size.Width), int32(size.Height), color.c)
-			rl.DrawCircle(int32(pos.X), int32(pos.Y), 2, rl.Red)
+		rl.DrawRectangle(int32(pos.X), int32(pos.Y), int32(size.Width), int32(size.Height), color.c)
+		rl.DrawCircle(int32(pos.X), int32(pos.Y), 2, rl.Red)
 
-			if rigidBody != nil {
-				rl.DrawRectangleLines(int32(pos.X), int32(pos.Y), int32(size.Width), int32(size.Height), rl.Red)
-			}
+		if rigidBody != nil {
+			rl.DrawRectangleLines(int32(pos.X), int32(pos.Y), int32(size.Width), int32(size.Height), rl.Red)
 		}
+	}
 }
