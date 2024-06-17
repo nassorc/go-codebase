@@ -2,17 +2,18 @@ package scenes
 
 import (
 	rl "github.com/gen2brain/raylib-go/raylib"
-	g "github.com/nassorc/gandalf"
+	engine "github.com/nassorc/gandalf"
+	ecs "github.com/nassorc/gandalf/ecs"
 	c "github.com/nassorc/gandalf/examples/platformer/components"
 	"github.com/nassorc/gandalf/examples/platformer/systems"
 )
 
 type PlayerScene struct {
-	world *g.World
+	world *ecs.World
 }
 
-func (s *PlayerScene) Setup() {
-	world := g.NewWorld()
+func (s *PlayerScene) Setup(e *engine.Engine) {
+	world := ecs.NewWorld()
 	s.world = world
 
 	world.RegisterAction(rl.KeyW, "Up")
@@ -30,10 +31,10 @@ func (s *PlayerScene) Setup() {
 		&c.Movable{},
 	)
 
-	world.RegisterSystem(&systems.InputSystem{}, &c.Input{})
-	world.RegisterSystem(&systems.PhysicsSystem{}, &c.RigidBody{}, &c.Transform{})
+	world.RegisterSystem(systems.InputSystem, &c.Input{})
+	world.RegisterSystem(systems.PhysicsSystem, &c.RigidBody{}, &c.Transform{})
 
-	world.NewEntity(
+	world.CreateEntity(
 		&c.Movable{},
 		&c.Transform{Pos: rl.NewVector2(0, 0)},
 		&c.Tag{Name: "player"},
@@ -45,7 +46,7 @@ func (s *PlayerScene) Setup() {
 		},
 	)
 
-	world.NewEntity(
+	world.CreateEntity(
 		&c.Transform{Pos: rl.NewVector2(60, 60), PrevPos: rl.NewVector2(60, 60)},
 		&c.Tag{Name: "tile"},
 		&c.Size{Width: 32, Height: 32},
@@ -55,7 +56,7 @@ func (s *PlayerScene) Setup() {
 		},
 	)
 
-	world.NewEntity(
+	world.CreateEntity(
 		&c.Transform{Pos: rl.NewVector2(60+32, 60), PrevPos: rl.NewVector2(60+32, 60)},
 		&c.Tag{Name: "tile"},
 		&c.Size{Width: 32, Height: 32},

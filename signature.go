@@ -1,4 +1,4 @@
-package main
+package gandalf
 
 import (
 	"fmt"
@@ -15,8 +15,6 @@ func NewSignature(size int) *Signature {
 type Signature struct {
 	signature []bool
 }
-
-func (s Signature) ttt() {}
 
 func (s *Signature) Set(idx int) error {
 	if idx < 0 || idx >= len(s.signature) {

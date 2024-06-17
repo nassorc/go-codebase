@@ -1,17 +1,15 @@
 package systems
 
 import (
+	"fmt"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
-	g "github.com/nassorc/gandalf"
+	ecs "github.com/nassorc/gandalf/ecs"
 	c "github.com/nassorc/gandalf/examples/platformer/components"
 )
 
-type InputSystem struct {
-	entities []*g.Entity
-}
-
-func (s *InputSystem) Update(w *g.World) {
-	for _, entity := range s.entities {
+func InputSystem(world *ecs.World, entities []*ecs.Entity) {
+	for _, entity := range entities {
 		var transform *c.Transform
 		entity.GetData(&transform)
 
@@ -31,13 +29,14 @@ func (s *InputSystem) Update(w *g.World) {
 		if rl.IsKeyDown(rl.KeyD) {
 			mx = speed
 		}
+		if rl.IsKeyDown(rl.KeyRight) {
+			// world
+		}
 
 		transform.PrevPos = transform.Pos
 		transform.Pos.X += mx
 		transform.Pos.Y += my
+		fmt.Println(transform.Pos.X)
 	}
-}
 
-func (s *InputSystem) AddEntity(e *g.Entity) {
-	s.entities = append(s.entities, e)
 }

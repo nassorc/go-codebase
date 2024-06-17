@@ -1,4 +1,4 @@
-module gandalf
+module github.com/nassorc/gandalf
 
 go 1.22.3
 

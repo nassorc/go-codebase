@@ -1,0 +1,53 @@
+// package gandalf
+
+// import (
+// 	"bytes"
+// 	"fmt"
+// 	"os"
+
+// 	ecs "ecs"
+// )
+
+// func NewLevelLoader(w *ecs.World) *LevelLoader {
+// 	return &LevelLoader{
+// 		w,
+// 	}
+// }
+
+// type LevelLoader struct {
+// 	w *ecs.World
+// }
+
+// func (l *LevelLoader) Load(path string) {
+// 	content, err := os.ReadFile(path)
+// 	if err != nil {
+// 		panic("could not Load path")
+// 	}
+// 	for _, line := range bytes.Split(content, []byte("\n")) {
+// 		fmt.Println("line", string(line))
+// 		args := bytes.Split(line, []byte(" "))
+
+// 		if string(args[0]) == "Box" {
+// 			// x, err := strconv.Atoi(string(args[1]))
+// 			// if err != nil {
+// 			// 	panic("could not convert point to int")
+// 			// }
+// 			// y, err := strconv.Atoi(string(args[2]))
+// 			// if err != nil {
+// 			// 	panic("could not convert point to int")
+// 			// }
+
+// 			// pos := rl.NewVector2(float32(100+(x*64)), float32(100+(y*64)))
+
+// 			l.w.NewEntity(
+// 			// &Transform{pos: pos, prevPos: pos},
+// 			// &Tag{"tile"},
+// 			// &Size{64, 64},
+// 			// &Color{rl.Green},
+// 			// &RigidBody{
+// 			// 	size: rl.NewVector2(64, 64),
+// 			// },
+// 			)
+// 		}
+// 	}
+// }

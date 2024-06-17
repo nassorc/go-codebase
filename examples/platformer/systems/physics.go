@@ -4,39 +4,14 @@ import (
 	"math"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
-	g "github.com/nassorc/gandalf"
+	ecs "github.com/nassorc/gandalf/ecs"
 	c "github.com/nassorc/gandalf/examples/platformer/components"
 )
 
-type PhysicsSystem struct {
-	entities []*g.Entity
-}
-
-type AxisCollision struct {
-	X bool
-	Y bool
-}
-
-func HasAxisCollision(posA rl.Vector2, posB rl.Vector2, sizeA rl.Vector2, sizeB rl.Vector2) (AxisCollision, rl.Vector2) {
-	var halfSizeA = rl.Vector2Scale(sizeA, 0.5)
-	var halfSizeB = rl.Vector2Scale(sizeB, 0.5)
-
-	var distX float64 = math.Abs(float64(posA.X - posB.X))
-	var distY float64 = math.Abs(float64(posA.Y - posB.Y))
-	var deltaX = float32(distX) - (halfSizeA.X + halfSizeB.X)
-	var deltaY = float32(distY) - (halfSizeA.Y + halfSizeB.Y)
-
-	var hasXAxisCollision = deltaX < 0
-	var hasYAxisCollision = deltaY < 0
-
-	return AxisCollision{X: hasXAxisCollision, Y: hasYAxisCollision}, rl.NewVector2(float32(math.Abs(float64(deltaX))), float32(math.Abs(float64(deltaY))))
-	// return AxisCollision{hasXAxisCollision},  AxisCollision{hasYAxisCollision}
-}
-
-func (s *PhysicsSystem) Update(w *g.World) {
+func PhysicsSystem(world *ecs.World, entities []*ecs.Entity) {
 	// Collision logic won't work with multiple entities since it directly updates
 	// the movable entity's position.
-	for _, entityA := range s.entities {
+	for _, entityA := range entities {
 		// process movable entity colliding against entity with a rigid body and a transform component
 		var movable *c.Movable
 		entityA.GetData(&movable)
@@ -45,8 +20,8 @@ func (s *PhysicsSystem) Update(w *g.World) {
 			continue
 		}
 
-		for _, entityB := range s.entities {
-			if entityA.Id == entityB.Id {
+		for _, entityB := range entities {
+			if entityA.Id() == entityB.Id() {
 				continue
 			}
 
@@ -93,8 +68,38 @@ func (s *PhysicsSystem) Update(w *g.World) {
 
 		}
 	}
+
 }
 
-func (s *PhysicsSystem) AddEntity(e *g.Entity) {
-	s.entities = append(s.entities, e)
+// type PhysicsSystem struct {
+// 	entities []*ecs.Entity
+// }
+
+type AxisCollision struct {
+	X bool
+	Y bool
 }
+
+func HasAxisCollision(posA rl.Vector2, posB rl.Vector2, sizeA rl.Vector2, sizeB rl.Vector2) (AxisCollision, rl.Vector2) {
+	var halfSizeA = rl.Vector2Scale(sizeA, 0.5)
+	var halfSizeB = rl.Vector2Scale(sizeB, 0.5)
+
+	var distX float64 = math.Abs(float64(posA.X - posB.X))
+	var distY float64 = math.Abs(float64(posA.Y - posB.Y))
+	var deltaX = float32(distX) - (halfSizeA.X + halfSizeB.X)
+	var deltaY = float32(distY) - (halfSizeA.Y + halfSizeB.Y)
+
+	var hasXAxisCollision = deltaX < 0
+	var hasYAxisCollision = deltaY < 0
+
+	return AxisCollision{X: hasXAxisCollision, Y: hasYAxisCollision}, rl.NewVector2(float32(math.Abs(float64(deltaX))), float32(math.Abs(float64(deltaY))))
+	// return AxisCollision{hasXAxisCollision},  AxisCollision{hasYAxisCollision}
+}
+
+// func (s *PhysicsSystem) Update(w *ecs.World) {
+
+// }
+
+// func (s *PhysicsSystem) AddEntity(e *ecs.Entity) {
+// 	s.entities = append(s.entities, e)
+// }
