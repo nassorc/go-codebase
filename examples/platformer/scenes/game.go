@@ -8,12 +8,14 @@ import (
 	"github.com/nassorc/gandalf/examples/platformer/systems"
 )
 
-type PlayerScene struct {
-	world *ecs.World
+type GameScene struct {
+	engine *engine.Engine
+	world  *ecs.World
 }
 
-func (s *PlayerScene) Setup(e *engine.Engine) {
+func (s *GameScene) Setup(engine *engine.Engine) {
 	world := ecs.NewWorld()
+	s.engine = engine
 	s.world = world
 
 	world.RegisterAction(rl.KeyW, "Up")
@@ -33,6 +35,10 @@ func (s *PlayerScene) Setup(e *engine.Engine) {
 
 	world.RegisterSystem(systems.InputSystem, &c.Input{})
 	world.RegisterSystem(systems.PhysicsSystem, &c.RigidBody{}, &c.Transform{})
+
+	// world.RegisterSystem(func(world *ecs.World, entities []*ecs.Entity) {
+	// 	fmt.Println(engine)
+	// })
 
 	world.CreateEntity(
 		&c.Movable{},
@@ -81,11 +87,11 @@ func (s *PlayerScene) Setup(e *engine.Engine) {
 
 }
 
-func (s *PlayerScene) Update() {
+func (s *GameScene) Update() {
 	s.world.Run()
 }
 
-func (s *PlayerScene) Render() {
+func (s *GameScene) Render() {
 	for _, entity := range s.world.Entities {
 		var size *c.Size
 		var transform *c.Transform
