@@ -1,84 +1,56 @@
 package gandalf
 
-import (
-	"os"
+import rl "github.com/gen2brain/raylib-go/raylib"
 
-	rl "github.com/gen2brain/raylib-go/raylib"
-	config "github.com/nassorc/gandalf/configParser"
-)
-
-const MAX_SIGNATURE_SIZE = 16
-
-type Scene interface {
-	Setup(e *Engine)
-	Update()
-	Render()
+type Game interface {
+	Setup(*World)
 }
 
-func NewEngine(scene Scene, configPath string, configParser config.IConfigParser) *Engine {
-	engine := &Engine{
-		configPath:   configPath,
-		configParser: configParser,
+type GameHandle struct {
+	game  Game
+	world *World
+}
+
+func (g *GameHandle) Update() {
+	g.world.Update()
+}
+
+func NewEngine(game Game) *Engine {
+	world := CreateWorld()
+	game.Setup(world)
+
+	gameHandle := GameHandle{
+		game,
+		world,
 	}
 
-	scene.Setup(engine)
-
-	engine.scene = scene
-
-	return engine
+	return &Engine{
+		gameHandle,
+	}
 }
 
 type Engine struct {
-	scene        Scene
-	configPath   string
-	configParser config.IConfigParser
+	game GameHandle
 }
 
 func (e *Engine) Run() {
 	e.init()
 	defer e.close()
 
-	// game.Setup()
-
 	for !rl.WindowShouldClose() {
-
-		e.scene.Update()
+		// e.game.Update()
 
 		rl.BeginDrawing()
-		rl.ClearBackground(rl.White)
-
-		e.scene.Render()
-
-		rl.DrawText("Congrats! You created your first window!", 190, 200, 20, rl.LightGray)
-
+		{
+			e.game.Update()
+			rl.DrawText("hello world", 0, 0, 18, rl.White)
+		}
 		rl.EndDrawing()
 	}
-
 }
 
 func (e *Engine) init() {
-	// Load files
-	file, err := os.Open(e.configPath)
-
-	if err != nil {
-		panic("failed to open configuration path")
-	}
-
-	buf := make([]byte, 1024)
-
-	n, err := file.Read(buf)
-
-	if err != nil {
-		panic("failed to read configuration path")
-	}
-
-	config, err := e.configParser.ParseConfig(buf[:n-1])
-
-	if err != nil {
-		panic(err)
-	}
-
-	rl.InitWindow(int32(config.Window.Width), int32(config.Window.Height), config.Window.Title)
+	rl.InitWindow(500, 500, "Game Title")
 	rl.SetTargetFPS(60)
 }
 
