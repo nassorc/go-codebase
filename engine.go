@@ -85,8 +85,3 @@ func (e *Engine) init() {
 func (e *Engine) close() {
 	rl.CloseWindow()
 }
-
-func (e *Engine) ChangeScene(newScene Scene) {
-	newScene.Setup(e)
-	e.scene = newScene
-}
