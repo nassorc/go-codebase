@@ -1,6 +1,10 @@
 package gandalf
 
-import rl "github.com/gen2brain/raylib-go/raylib"
+import (
+	"fmt"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
+)
 
 type Game interface {
 	Setup(*World)
@@ -12,25 +16,27 @@ type GameHandle struct {
 }
 
 func (g *GameHandle) Update() {
-	g.world.Update()
+	g.world.update()
 }
 
 func NewEngine(game Game) *Engine {
-	world := CreateWorld()
+	engine := &Engine{}
+
+	world := createWorld(engine)
 	game.Setup(world)
 
-	gameHandle := GameHandle{
+	gameHandle := &GameHandle{
 		game,
 		world,
 	}
 
-	return &Engine{
-		gameHandle,
-	}
+	engine.game = gameHandle
+
+	return engine
 }
 
 type Engine struct {
-	game GameHandle
+	game *GameHandle
 }
 
 func (e *Engine) Run() {
@@ -40,9 +46,9 @@ func (e *Engine) Run() {
 	for !rl.WindowShouldClose() {
 		// e.game.Update()
 
+		e.game.Update()
 		rl.BeginDrawing()
 		{
-			e.game.Update()
 			rl.DrawText("hello world", 0, 0, 18, rl.White)
 		}
 		rl.EndDrawing()
@@ -56,4 +62,16 @@ func (e *Engine) init() {
 
 func (e *Engine) close() {
 	rl.CloseWindow()
+}
+
+func (e *Engine) changeGame(newGame Game) {
+	world := createWorld(e)
+	newGame.Setup(world)
+	fmt.Println("NEW GAME", newGame)
+	fmt.Println("NEW world", world)
+
+	fmt.Println("old", e)
+
+	e.game.game = newGame
+	e.game.world = world
 }
