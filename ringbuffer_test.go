@@ -40,7 +40,24 @@ func TestRingBuffer(t *testing.T) {
 }
 
 func TestRingBufferEnqueueDeque(t *testing.T) {
-	var buf = NewRingBuffer[int](5)
+	var size = 2
+	var buf = NewRingBuffer[int](size)
+
+	for idx := 0; idx < size; idx++ {
+		buf.Enqueue(idx)
+	}
+
+	// deque all elements, then requeue first element
+	out1, _ := buf.Deque() // 0
+	buf.Deque()            // 1
+	buf.Enqueue(out1)      // 0
+
+	out3, _ := buf.Deque() // 0
+	if out3 != 0 {
+		t.Errorf("Expected=%v Got=%v", 1, out3)
+	}
+
+	buf = NewRingBuffer[int](5)
 
 	tt := []int{3, 5, 8, 13, 21}
 

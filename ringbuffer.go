@@ -25,9 +25,6 @@ func (buf *Ringbuffer[T]) Enqueue(value T) bool {
 	buf.buffer[buf.write] = value
 	buf.size += 1
 
-	if buf.read == buf.write && buf.size > 0 {
-		buf.read = (buf.read + 1) % buf.capacity
-	}
 	return true
 }
 
