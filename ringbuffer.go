@@ -21,25 +21,25 @@ type Ringbuffer[T any] struct {
 	buffer   []T
 }
 
-func Enqueue[T any](rb *Ringbuffer[T], value T) {
-	rb.write = (rb.write + 1) % rb.capacity
-	rb.buffer[rb.write] = value
+func (buf *Ringbuffer[T]) Enqueue(value T) {
+	buf.write = (buf.write + 1) % buf.capacity
+	buf.buffer[buf.write] = value
 
-	if rb.read == rb.write && len(rb.buffer) > 0 {
-		rb.read = (rb.read + 1) % rb.capacity
+	if buf.read == buf.write && len(buf.buffer) > 0 {
+		buf.read = (buf.read + 1) % buf.capacity
 	}
 }
 
-func Dequeue[T any](rb *Ringbuffer[T]) (T, error) {
+func (buf *Ringbuffer[T]) Dequeue() (T, error) {
 	t := reflect.TypeOf((*T)(nil))
 	zero := reflect.Zero(t).Interface()
 
-	if len(rb.buffer) == 0 {
-		return zero.(T), fmt.Errorf("Empty Ringbuffer")
+	if len(buf.buffer) == 0 {
+		return zero.(T), fmt.Errorf("empty buffer")
 	}
 
-	out := rb.buffer[rb.read]
-	rb.read = (rb.read + 1) % rb.capacity
+	out := buf.buffer[buf.read]
+	buf.read = (buf.read + 1) % buf.capacity
 
 	return out, nil
 }
