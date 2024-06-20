@@ -10,15 +10,11 @@ var MAX_SIGNATURE_SIZE = 16
 type System func(*World, []*Entity)
 
 func createWorld(engine *Engine) *World {
-	rb := NewRingBuffer[int](100)
-
-	for idx := 0; idx < 100; idx++ {
-		Enqueue(rb, idx)
-	}
+	var g_size = 100
 
 	return &World{
+		entityManager:   newEntityManager(g_size),
 		typeToComponent: make(map[reflect.Type]int),
-		availIds:        rb,
 		engine:          engine,
 		systemSignature: make(map[int]*Signature),
 	}
@@ -27,10 +23,10 @@ func createWorld(engine *Engine) *World {
 type World struct {
 	engine *Engine
 
+	entityManager *EntityManager
+
 	Components      []*ComponentArray
 	typeToComponent map[reflect.Type]int
-	availIds        *Ringbuffer[int]
-	Entities        []*Entity
 
 	systems         []System
 	systemEntities  [][]*Entity
@@ -68,43 +64,35 @@ func (w *World) RegisterComponents(components ...interface{}) {
 }
 
 func (w *World) CreateEntity(components ...interface{}) *Entity {
-	id, err := Dequeue(w.availIds)
+	var eSignature = NewSignature(MAX_SIGNATURE_SIZE)
+	var entity, ok = w.entityManager.newEntity()
 
-	if err != nil {
-		panic("Dequeing Entity Id paniced")
+	if !ok {
+		panic("No available entities")
 	}
 
-	var eSignature = NewSignature(MAX_SIGNATURE_SIZE)
+	w.entityManager.setSignature(entity, eSignature)
 
-	fmt.Println("creating new entity")
 	for _, component := range components {
 		t := reflect.TypeOf(component)
 		val := reflect.ValueOf(component)
 
 		if t.Kind() != reflect.Pointer {
-			panic("Add component failed. Component is not a pointer type.")
+			panic("Component is not a pointer type.")
 		}
 
 		carr := w.getComponentArray(t)
-		carr.AppendData(id, val)
+		carr.AppendData(entity.Id(), val)
 		at := w.getComponentId(component)
 
 		eSignature.Set(at)
 	}
 
-	entity := &Entity{
-		id:        id,
-		World:     w,
-		Signature: eSignature,
-	}
-
-	w.Entities = append(w.Entities, entity)
-
 	for idx := 0; idx < len(w.systems); idx++ {
 		sSignature := w.systemSignature[idx]
 
 		if (eSignature.Int() & sSignature.Int()) == sSignature.Int() {
-			w.systemEntities[idx] = append(w.systemEntities[idx], entity)
+			w.systemEntities[idx] = append(w.systemEntities[idx], NewEntityHandle(w, entity))
 		}
 	}
 
