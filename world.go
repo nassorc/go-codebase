@@ -7,7 +7,7 @@ import (
 
 var MAX_SIGNATURE_SIZE = 16
 
-type System func(*World, []*Entity)
+type System func(*World, []*EntityHandle)
 
 func createWorld(engine *Engine) *World {
 	var g_size = 100
@@ -29,7 +29,7 @@ type World struct {
 	typeToComponent map[reflect.Type]int
 
 	systems         []System
-	systemEntities  [][]*Entity
+	systemEntities  [][]*EntityHandle
 	systemSignature map[int]*Signature
 }
 
@@ -45,7 +45,7 @@ func (w *World) RegisterSystem(system System, components ...interface{}) {
 	}
 
 	w.systemSignature[idx] = sSignature
-	w.systemEntities = append(w.systemEntities, make([]*Entity, 0))
+	w.systemEntities = append(w.systemEntities, make([]*EntityHandle, 0))
 }
 
 func (w *World) RegisterComponents(components ...interface{}) {
