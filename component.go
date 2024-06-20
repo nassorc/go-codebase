@@ -2,6 +2,20 @@ package gandalf
 
 import "reflect"
 
+type IComponentHandle interface {
+	TypeArg() reflect.Type
+}
+
+type ComponentHandle[T any] struct {
+	owner *Entity
+	data  T
+}
+
+func (h *ComponentHandle[T]) TypeArg() reflect.Type {
+	handleType := reflect.TypeOf((*T)(nil))
+	return handleType
+}
+
 func NewComponentArray(t reflect.Type) *ComponentArray {
 	return &ComponentArray{
 		Data:         reflect.MakeSlice(reflect.SliceOf(t), 0, 0),

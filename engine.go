@@ -1,8 +1,6 @@
 package gandalf
 
 import (
-	"fmt"
-
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -36,7 +34,9 @@ func NewEngine(game Game) *Engine {
 }
 
 type Engine struct {
-	game *GameHandle
+	game                *GameHandle
+	nextGame            Game
+	isChangeGamePending bool
 }
 
 func (e *Engine) Run() {
@@ -44,12 +44,29 @@ func (e *Engine) Run() {
 	defer e.close()
 
 	for !rl.WindowShouldClose() {
-		// e.game.Update()
-
-		e.game.Update()
 		rl.BeginDrawing()
 		{
-			rl.DrawText("hello world", 0, 0, 18, rl.White)
+			rl.ClearBackground(rl.Black)
+
+			if e.isChangeGamePending {
+				// fmt.Println("SWITCHING SCENES")
+
+				world := createWorld(e)
+
+				gameHandle := &GameHandle{
+					game:  e.nextGame,
+					world: world,
+				}
+
+				gameHandle.game.Setup(world)
+				e.game = gameHandle
+
+				e.nextGame = nil
+				e.isChangeGamePending = false
+			}
+
+			e.game.Update()
+
 		}
 		rl.EndDrawing()
 	}
@@ -65,13 +82,6 @@ func (e *Engine) close() {
 }
 
 func (e *Engine) changeGame(newGame Game) {
-	world := createWorld(e)
-	newGame.Setup(world)
-	fmt.Println("NEW GAME", newGame)
-	fmt.Println("NEW world", world)
-
-	fmt.Println("old", e)
-
-	e.game.game = newGame
-	e.game.world = world
+	e.nextGame = newGame
+	e.isChangeGamePending = true
 }

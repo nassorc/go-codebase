@@ -224,13 +224,13 @@ package gandalf
 // 	world.RemoveEntity(testEntity1)
 // }
 
-type TestComponentA struct {
-	value int
-}
+// type TestComponentA struct {
+// 	value int
+// }
 
-type TestComponentB struct {
-	value string
-}
+// type TestComponentB struct {
+// 	value string
+// }
 
 // type TestABSystem struct {
 // 	entities    []*Entity

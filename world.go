@@ -100,8 +100,8 @@ func (w *World) CreateEntity(components ...interface{}) *Entity {
 }
 
 func (w *World) update() {
-	for _, system := range w.systems {
-		system(w, make([]*Entity, 5))
+	for idx, system := range w.systems {
+		system(w, w.systemEntities[idx])
 	}
 }
 
@@ -127,6 +127,5 @@ func (w *World) getComponentArray(t reflect.Type) *ComponentArray {
 }
 
 func (w *World) ChangeScene(game Game) {
-	fmt.Println("WHAT IS THIS", w.engine)
 	w.engine.changeGame(game)
 }
