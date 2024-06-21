@@ -4,12 +4,12 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-type Game interface {
+type Scene interface {
 	Setup(*World)
 }
 
 type GameHandle struct {
-	game  Game
+	game  Scene
 	world *World
 }
 
@@ -17,7 +17,7 @@ func (g *GameHandle) Update() {
 	g.world.update()
 }
 
-func NewEngine(game Game) *Engine {
+func NewEngine(game Scene) *Engine {
 	engine := &Engine{}
 
 	world := createWorld(engine)
@@ -35,7 +35,7 @@ func NewEngine(game Game) *Engine {
 
 type Engine struct {
 	game                *GameHandle
-	nextGame            Game
+	nextGame            Scene
 	isChangeGamePending bool
 }
 
@@ -73,7 +73,7 @@ func (e *Engine) Run() {
 }
 
 func (e *Engine) init() {
-	rl.InitWindow(500, 500, "Game Title")
+	rl.InitWindow(500, 500, "Scene Title")
 	rl.SetTargetFPS(60)
 }
 
@@ -81,7 +81,7 @@ func (e *Engine) close() {
 	rl.CloseWindow()
 }
 
-func (e *Engine) changeGame(newGame Game) {
+func (e *Engine) changeScene(newGame Scene) {
 	e.nextGame = newGame
 	e.isChangeGamePending = true
 }

@@ -126,6 +126,6 @@ func (w *World) getComponentArray(t reflect.Type) *ComponentArray {
 	return w.Components[cidx]
 }
 
-func (w *World) ChangeScene(game Game) {
-	w.engine.changeGame(game)
+func (w *World) ChangeScene(game Scene) {
+	w.engine.changeScene(game)
 }
