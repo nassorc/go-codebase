@@ -9,11 +9,9 @@ var MAX_SIGNATURE_SIZE = 16
 
 type System func(*World, []*EntityHandle)
 
-func createWorld(engine *Engine) *World {
-	var g_size = 100
-
+func createWorld(engine *Engine, size int) *World {
 	return &World{
-		entityManager:   newEntityManager(g_size),
+		entityManager:   newEntityManager(size),
 		typeToComponent: make(map[reflect.Type]int),
 		engine:          engine,
 		systemSignature: make(map[int]*Signature),
@@ -63,7 +61,7 @@ func (w *World) RegisterComponents(components ...interface{}) {
 	}
 }
 
-func (w *World) CreateEntity(components ...interface{}) *Entity {
+func (w *World) CreateEntity(components ...interface{}) *EntityHandle {
 	var eSignature = NewSignature(MAX_SIGNATURE_SIZE)
 	var entity, ok = w.entityManager.newEntity()
 
@@ -96,7 +94,22 @@ func (w *World) CreateEntity(components ...interface{}) *Entity {
 		}
 	}
 
+	return NewEntityHandle(w, entity)
+}
+
+func (w *World) CreateEntityFromPrefab(prefab interface{}) *EntityHandle {
+	value := reflect.ValueOf(prefab).Elem()
+
+	var components []interface{}
+
+	for idx := 0; idx < value.NumField(); idx++ {
+		components = append(components, value.Field(idx).Interface())
+	}
+
+	entity := w.CreateEntity(components...)
+
 	return entity
+
 }
 
 func (w *World) update() {

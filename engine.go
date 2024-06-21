@@ -17,10 +17,12 @@ func (g *GameHandle) Update() {
 	g.world.update()
 }
 
-func NewEngine(game Scene) *Engine {
-	engine := &Engine{}
+func NewEngine(game Scene, size int) *Engine {
+	engine := &Engine{
+		size: size,
+	}
 
-	world := createWorld(engine)
+	world := createWorld(engine, size)
 	game.Setup(world)
 
 	gameHandle := &GameHandle{
@@ -34,6 +36,7 @@ func NewEngine(game Scene) *Engine {
 }
 
 type Engine struct {
+	size                int
 	game                *GameHandle
 	nextGame            Scene
 	isChangeGamePending bool
@@ -51,7 +54,7 @@ func (e *Engine) Run() {
 			if e.isChangeGamePending {
 				// fmt.Println("SWITCHING SCENES")
 
-				world := createWorld(e)
+				world := createWorld(e, e.size)
 
 				gameHandle := &GameHandle{
 					game:  e.nextGame,
