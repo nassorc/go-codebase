@@ -1,9 +1,5 @@
 package gandalf
 
-import (
-	"reflect"
-)
-
 type EntityId = int
 
 type Entity struct {
@@ -23,7 +19,7 @@ func NewEntityHandle(world *World, entity *Entity) *EntityHandle {
 }
 
 type EntityHandle struct {
-	entity *Entity
+	Entity *Entity
 	world  *World
 }
 
@@ -35,31 +31,13 @@ type EntityHandle struct {
 
 func (e *EntityHandle) Unpack(components ...interface{}) {
 	for _, component := range components {
-		t := reflect.TypeOf(component)
-		val := reflect.ValueOf(component).Elem()
-
-		if t.Kind() != reflect.Pointer {
-			panic("Add component failed. Component is not a pointer type.")
-		}
-
-		cIdx, ok := e.world.typeToComponent[t.Elem()]
-
-		if !ok {
-			continue
-		}
-
-		carr := e.world.Components[cIdx]
-		idx, ok := carr.entityToData[e.entity.Id()]
-
-		if !ok {
-			continue
-		}
-
-		val.Set(carr.Data.Index(idx).Addr().Elem())
+		e.world.componentManager.GetData(e.Entity.Id(), component)
 	}
 }
 
-func (e *EntityHandle) Destroy() {}
+func (e *EntityHandle) Destroy() {
+	// e.world.entityManager
+}
 
 func newEntityManager(size int) *EntityManager {
 	var availIds = NewRingBuffer[int](size)
@@ -82,6 +60,18 @@ type EntityManager struct {
 	signatures        []*Signature
 	entityToSignature map[EntityId]int
 	signatureToEntity map[int]EntityId
+
+	entitiesToRemove []*Entity
+}
+
+func (manager *EntityManager) scheduleEntityRemoval(entity *Entity) {
+	manager.entitiesToRemove = append(manager.entitiesToRemove, entity)
+}
+
+func (manager *EntityManager) removeEntities() {
+	// for _, entity := range manager.entitiesToRemove {
+
+	// }
 }
 
 func (manager *EntityManager) newEntity() (*Entity, bool) {

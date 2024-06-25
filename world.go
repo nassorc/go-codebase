@@ -11,8 +11,10 @@ type System func(*World, []*EntityHandle)
 
 func createWorld(engine *Engine, size int) *World {
 	return &World{
-		entityManager:   newEntityManager(size),
-		typeToComponent: make(map[reflect.Type]int),
+		entityManager:    newEntityManager(size),
+		componentManager: NewComponentManager(),
+
+		// typeToComponent: make(map[reflect.Type]int),
 		engine:          engine,
 		systemSignature: make(map[int]*Signature),
 	}
@@ -21,10 +23,8 @@ func createWorld(engine *Engine, size int) *World {
 type World struct {
 	engine *Engine
 
-	entityManager *EntityManager
-
-	Components      []*ComponentArray
-	typeToComponent map[reflect.Type]int
+	entityManager    *EntityManager
+	componentManager *ComponentManager
 
 	systems         []System
 	systemEntities  [][]*EntityHandle
@@ -37,9 +37,16 @@ func (w *World) RegisterSystem(system System, components ...interface{}) {
 	w.systems = append(w.systems, system)
 
 	sSignature := NewSignature(MAX_SIGNATURE_SIZE)
+
+	// create system signature
 	for _, component := range components {
-		Id := w.getComponentId(component)
-		sSignature.Set(Id)
+		t := reflect.TypeOf(component)
+		id, ok := w.componentManager.GetStoreId(t)
+
+		if !ok {
+			panic("System cannot register component that does not exist.")
+		}
+		sSignature.Set(id)
 	}
 
 	w.systemSignature[idx] = sSignature
@@ -54,10 +61,7 @@ func (w *World) RegisterComponents(components ...interface{}) {
 			panic("Add component failed. Component is not a pointer type.")
 		}
 
-		carr := NewComponentArray(t)
-		idx := len(w.Components)
-		w.Components = append(w.Components, carr)
-		w.typeToComponent[t] = idx
+		w.componentManager.NewStore(t)
 	}
 }
 
@@ -72,18 +76,18 @@ func (w *World) CreateEntity(components ...interface{}) *EntityHandle {
 	w.entityManager.setSignature(entity, eSignature)
 
 	for _, component := range components {
+		ok := w.componentManager.AddDataToStore(entity.Id(), component)
+		if !ok {
+			panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
+		}
 		t := reflect.TypeOf(component)
-		val := reflect.ValueOf(component)
+		storeId, ok := w.componentManager.GetStoreId(t)
 
-		if t.Kind() != reflect.Pointer {
-			panic("Component is not a pointer type.")
+		if !ok {
+			panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
 		}
 
-		carr := w.getComponentArray(t)
-		carr.AppendData(entity.Id(), val)
-		at := w.getComponentId(component)
-
-		eSignature.Set(at)
+		eSignature.Set(storeId)
 	}
 
 	for idx := 0; idx < len(w.systems); idx++ {
@@ -109,34 +113,66 @@ func (w *World) CreateEntityFromPrefab(prefab interface{}) *EntityHandle {
 	entity := w.CreateEntity(components...)
 
 	return entity
+}
 
+func (w *World) RemoveEntity(entity *Entity) {
+	// w.entityManager.
+}
+
+func (w *World) RemoveComponent(entity *Entity, component interface{}) bool {
+	var entityId = entity.Id()
+	var t = reflect.TypeOf(component)
+	var storeId, ok = w.componentManager.GetStoreId(t)
+	if !ok {
+		panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
+	}
+	eSignature, ok := w.entityManager.getSignature(entity)
+	if !ok {
+		panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
+	}
+
+	ok = w.componentManager.RemoveData(entityId, t)
+	if !ok {
+		panic("Failed remove component")
+	}
+
+	// find all systems that match the entity's siganture and remove from the system
+	for idx := 0; idx < len(w.systems); idx++ {
+		sSignature := w.systemSignature[idx]
+		entities := w.systemEntities[idx]
+
+		// if entity signature does not match system
+		if sSignature.Int()&eSignature.Int() != sSignature.Int() {
+			continue
+		}
+
+		// find entity in array
+		// !Find better solution========================
+		var found = -1
+		for idx = 0; idx < len(entities); idx++ {
+			if entityId == entities[idx].Entity.Id() {
+				found = idx
+				break
+			}
+		}
+
+		var lastIdx = len(entities) - 1
+
+		if found >= 0 {
+			entities[idx] = entities[lastIdx]
+			w.systemEntities[idx] = entities[0:lastIdx]
+		}
+	}
+
+	eSignature.Reset(storeId)
+
+	return true
 }
 
 func (w *World) update() {
 	for idx, system := range w.systems {
 		system(w, w.systemEntities[idx])
 	}
-}
-
-func (w *World) getComponentId(component interface{}) int {
-	t := reflect.TypeOf(component)
-
-	if t.Kind() != reflect.Pointer {
-		panic("Add component failed. Component is not a pointer type.")
-	}
-
-	Id, ok := w.typeToComponent[t]
-
-	if !ok {
-		panic(fmt.Sprintf("getComponentId panicked. type=%v is not a component array", t))
-	}
-
-	return Id
-}
-
-func (w *World) getComponentArray(t reflect.Type) *ComponentArray {
-	cidx := w.typeToComponent[t]
-	return w.Components[cidx]
 }
 
 func (w *World) ChangeScene(game Scene) {
