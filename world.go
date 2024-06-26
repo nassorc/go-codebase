@@ -5,52 +5,39 @@ import (
 	"reflect"
 )
 
-var MAX_SIGNATURE_SIZE = 16
+const SIG_SIZE = 16
 
-type System func(*World, []*EntityHandle)
+func CreateWorld(engine *Engine, size int) *World {
+	var entityMgr = NewEntityManager(size)
+	var systemMgr = NewSystemManager()
+	var componentMgr = NewComponentManager()
 
-func createWorld(engine *Engine, size int) *World {
 	return &World{
-		entityManager:    newEntityManager(size),
-		componentManager: NewComponentManager(),
-
-		// typeToComponent: make(map[reflect.Type]int),
-		engine:          engine,
-		systemSignature: make(map[int]*Signature),
+		engine,
+		entityMgr,
+		systemMgr,
+		componentMgr,
 	}
 }
 
 type World struct {
-	engine *Engine
-
-	entityManager    *EntityManager
-	componentManager *ComponentManager
-
-	systems         []System
-	systemEntities  [][]*EntityHandle
-	systemSignature map[int]*Signature
+	engine       *Engine
+	entityMgr    *EntityManager
+	systemMgr    *SystemManager
+	componentMgr *ComponentManager
 }
 
-func (w *World) RegisterSystem(system System, components ...interface{}) {
-	// t := reflect.TypeOf(system)
-	idx := len(w.systems)
-	w.systems = append(w.systems, system)
-
-	sSignature := NewSignature(MAX_SIGNATURE_SIZE)
+func (world *World) RegisterSystem(system System, components ...interface{}) {
+	var sig = NewSignature(SIG_SIZE)
 
 	// create system signature
 	for _, component := range components {
-		t := reflect.TypeOf(component)
-		id, ok := w.componentManager.GetStoreId(t)
-
-		if !ok {
-			panic("System cannot register component that does not exist.")
-		}
-		sSignature.Set(id)
+		var t = reflect.TypeOf(component)
+		var id, _ = world.componentMgr.GetStoreId(t)
+		sig.Set(id)
 	}
 
-	w.systemSignature[idx] = sSignature
-	w.systemEntities = append(w.systemEntities, make([]*EntityHandle, 0))
+	world.systemMgr.Register(system, sig)
 }
 
 func (w *World) RegisterComponents(components ...interface{}) {
@@ -61,27 +48,22 @@ func (w *World) RegisterComponents(components ...interface{}) {
 			panic("Add component failed. Component is not a pointer type.")
 		}
 
-		w.componentManager.NewStore(t)
+		w.componentMgr.NewStore(t)
 	}
 }
 
-func (w *World) CreateEntity(components ...interface{}) *EntityHandle {
-	var eSignature = NewSignature(MAX_SIGNATURE_SIZE)
-	var entity, ok = w.entityManager.newEntity()
+func (world *World) CreateEntity(components ...interface{}) EntityHandle {
 
-	if !ok {
-		panic("No available entities")
-	}
-
-	w.entityManager.setSignature(entity, eSignature)
+	var eSignature = NewSignature(SIG_SIZE)
+	var entity = world.entityMgr.CreateEntity(eSignature)
 
 	for _, component := range components {
-		ok := w.componentManager.AddDataToStore(entity.Id(), component)
+		ok := world.componentMgr.AddDataToStore(entity, component)
 		if !ok {
 			panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
 		}
 		t := reflect.TypeOf(component)
-		storeId, ok := w.componentManager.GetStoreId(t)
+		storeId, ok := world.componentMgr.GetStoreId(t)
 
 		if !ok {
 			panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
@@ -90,91 +72,38 @@ func (w *World) CreateEntity(components ...interface{}) *EntityHandle {
 		eSignature.Set(storeId)
 	}
 
-	for idx := 0; idx < len(w.systems); idx++ {
-		sSignature := w.systemSignature[idx]
+	var entityHdl = NewEntityHandle(entity, world, eSignature)
+	world.systemMgr.NewEntity(entityHdl)
 
-		if (eSignature.Int() & sSignature.Int()) == sSignature.Int() {
-			w.systemEntities[idx] = append(w.systemEntities[idx], NewEntityHandle(w, entity))
-		}
-	}
-
-	return NewEntityHandle(w, entity)
+	return entityHdl
 }
 
-func (w *World) CreateEntityFromPrefab(prefab interface{}) *EntityHandle {
-	value := reflect.ValueOf(prefab).Elem()
-
-	var components []interface{}
-
-	for idx := 0; idx < value.NumField(); idx++ {
-		components = append(components, value.Field(idx).Interface())
-	}
-
-	entity := w.CreateEntity(components...)
-
-	return entity
+func (world *World) RemoveEntity(entity EntityId) {
+	world.entityMgr.ScheduleEntityRemoval(entity)
 }
 
-func (w *World) RemoveEntity(entity *Entity) {
-	// w.entityManager.
+func (world *World) GetDeadEntities() []EntityId {
+	return world.entityMgr.GetEntitiesToRemove()
 }
 
-func (w *World) RemoveComponent(entity *Entity, component interface{}) bool {
-	var entityId = entity.Id()
-	var t = reflect.TypeOf(component)
-	var storeId, ok = w.componentManager.GetStoreId(t)
-	if !ok {
-		panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
-	}
-	eSignature, ok := w.entityManager.getSignature(entity)
-	if !ok {
-		panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
-	}
-
-	ok = w.componentManager.RemoveData(entityId, t)
-	if !ok {
-		panic("Failed remove component")
-	}
-
-	// find all systems that match the entity's siganture and remove from the system
-	for idx := 0; idx < len(w.systems); idx++ {
-		sSignature := w.systemSignature[idx]
-		entities := w.systemEntities[idx]
-
-		// if entity signature does not match system
-		if sSignature.Int()&eSignature.Int() != sSignature.Int() {
-			continue
-		}
-
-		// find entity in array
-		// !Find better solution========================
-		var found = -1
-		for idx = 0; idx < len(entities); idx++ {
-			if entityId == entities[idx].Entity.Id() {
-				found = idx
-				break
-			}
-		}
-
-		var lastIdx = len(entities) - 1
-
-		if found >= 0 {
-			entities[idx] = entities[lastIdx]
-			w.systemEntities[idx] = entities[0:lastIdx]
-		}
-	}
-
-	eSignature.Reset(storeId)
-
-	return true
+func (world *World) GetEntitySignature(entity EntityId) *Signature {
+	return world.entityMgr.GetSignature(entity)
 }
 
-func (w *World) update() {
-	for idx, system := range w.systems {
-		system(w, w.systemEntities[idx])
-	}
+func (world *World) Tick() {
+	// Update systems first. Updating entityMgr clears the entitiesToRemove array,
+	// which the system manager uses to remove the entities from its store.
+	// Calling system update first guarantees entities are removed.
+
+	world.systemMgr.OnRemove(world)
+	world.componentMgr.OnRemove(world)
+	world.entityMgr.OnRemove(world)
+
+	world.entityMgr.Update(world)
+	world.componentMgr.Update(world)
+	world.systemMgr.Update(world)
 }
 
 func (w *World) ChangeScene(game Scene) {
-	w.engine.changeScene(game)
+	w.engine.ChangeScene(game)
 }

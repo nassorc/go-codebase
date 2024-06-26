@@ -14,7 +14,7 @@ type GameHandle struct {
 }
 
 func (g *GameHandle) Update() {
-	g.world.update()
+	g.world.Tick()
 }
 
 func NewEngine(game Scene, size int) *Engine {
@@ -22,7 +22,7 @@ func NewEngine(game Scene, size int) *Engine {
 		size: size,
 	}
 
-	world := createWorld(engine, size)
+	world := CreateWorld(engine, size)
 	game.Setup(world)
 
 	gameHandle := &GameHandle{
@@ -43,8 +43,8 @@ type Engine struct {
 }
 
 func (e *Engine) Run() {
-	e.init()
-	defer e.close()
+	e.Init()
+	defer e.Close()
 
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
@@ -54,7 +54,7 @@ func (e *Engine) Run() {
 			if e.isChangeGamePending {
 				// fmt.Println("SWITCHING SCENES")
 
-				world := createWorld(e, e.size)
+				world := CreateWorld(e, e.size)
 
 				gameHandle := &GameHandle{
 					game:  e.nextGame,
@@ -75,16 +75,16 @@ func (e *Engine) Run() {
 	}
 }
 
-func (e *Engine) init() {
+func (e *Engine) Init() {
 	rl.InitWindow(500, 500, "Scene Title")
 	rl.SetTargetFPS(60)
 }
 
-func (e *Engine) close() {
+func (e *Engine) Close() {
 	rl.CloseWindow()
 }
 
-func (e *Engine) changeScene(newGame Scene) {
+func (e *Engine) ChangeScene(newGame Scene) {
 	e.nextGame = newGame
 	e.isChangeGamePending = true
 }

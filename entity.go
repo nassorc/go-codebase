@@ -2,147 +2,66 @@ package gandalf
 
 type EntityId = int
 
-type Entity struct {
-	id        EntityId
-	Signature *Signature
-}
-
-func (e *Entity) Id() EntityId {
-	return e.id
-}
-
-func NewEntityHandle(world *World, entity *Entity) *EntityHandle {
-	return &EntityHandle{
-		entity,
-		world,
-	}
-}
-
-type EntityHandle struct {
-	Entity *Entity
-	world  *World
-}
-
-// func (e *EntityHandle) UnpackToHandle(components ...IComponentHandle) {
-// for _, _component := range components {
-// 	// argType := component.TypeArg()
-// }
-// }
-
-func (e *EntityHandle) Unpack(components ...interface{}) {
-	for _, component := range components {
-		e.world.componentManager.GetData(e.Entity.Id(), component)
-	}
-}
-
-func (e *EntityHandle) Destroy() {
-	// e.world.entityManager
-}
-
-func newEntityManager(size int) *EntityManager {
-	var availIds = NewRingBuffer[int](size)
-	var entityToSignature = make(map[EntityId]int)
-	var signatureToEntity = make(map[int]EntityId)
+func NewEntityManager(size int) *EntityManager {
+	q := NewRingBuffer[EntityId](size)
 
 	for idx := 0; idx < size; idx++ {
-		availIds.Enqueue(idx)
+		q.Enqueue(idx)
 	}
 
 	return &EntityManager{
-		availIds:          availIds,
-		entityToSignature: entityToSignature,
-		signatureToEntity: signatureToEntity,
+		availEntities:    q,
+		entitiesToRemove: make([]EntityId, 0),
+
+		entitySignatures: make([]*Signature, size),
 	}
 }
 
 type EntityManager struct {
-	availIds          *Ringbuffer[int]
-	signatures        []*Signature
-	entityToSignature map[EntityId]int
-	signatureToEntity map[int]EntityId
+	availEntities    *Ringbuffer[EntityId]
+	entitiesToRemove []EntityId
 
-	entitiesToRemove []*Entity
+	entitySignatures []*Signature
 }
 
-func (manager *EntityManager) scheduleEntityRemoval(entity *Entity) {
-	manager.entitiesToRemove = append(manager.entitiesToRemove, entity)
+func (mgr *EntityManager) CreateEntity(signature *Signature) EntityId {
+	newEntity, _ := mgr.availEntities.Deque()
+	mgr.entitySignatures[newEntity] = signature
+
+	return newEntity
 }
 
-func (manager *EntityManager) removeEntities() {
-	// for _, entity := range manager.entitiesToRemove {
-
-	// }
+func (mgr *EntityManager) GetEntitiesToRemove() []EntityId {
+	return mgr.entitiesToRemove[:]
 }
 
-func (manager *EntityManager) newEntity() (*Entity, bool) {
-	id, ok := manager.availIds.Deque()
+func (mgr *EntityManager) GetSignature(entity EntityId) *Signature {
+	return mgr.entitySignatures[entity]
+}
 
-	if !ok {
-		return nil, false
+func (mgr *EntityManager) ScheduleEntityRemoval(entity EntityId) {
+	mgr.entitiesToRemove = append(mgr.entitiesToRemove, entity)
+}
+
+func (mgr *EntityManager) RemoveDeadEntities() {
+	for _, removingId := range mgr.entitiesToRemove {
+		// mgr.entitySignatures[removingId].ResetAll()
+		mgr.entitySignatures[removingId] = nil
+
+		// requeue dead entity's id in the available entity queue
+		mgr.availEntities.Enqueue(removingId)
 	}
 
-	// entity's signature bookkeeping
-	signatureIdx := len(manager.signatures)
-	manager.signatures = append(manager.signatures, nil)
-	manager.entityToSignature[id] = signatureIdx
-	manager.signatureToEntity[signatureIdx] = id
-
-	return &Entity{
-		id: id,
-	}, true
+	// clear entitiesToRemove queue
+	// var cpy = mgr.entitiesToRemove[:]
+	mgr.entitiesToRemove = nil
 }
 
-func (manager *EntityManager) setSignature(entity *Entity, signature *Signature) bool {
-	idx, ok := manager.entityToSignature[entity.Id()]
-
-	if !ok {
-		return false
-	}
-
-	manager.signatures[idx] = signature
-
-	return true
+func (mgr *EntityManager) OnRemove(world *World) {
+	mgr.RemoveDeadEntities()
 }
 
-func (manager *EntityManager) getSignature(entity *Entity) (*Signature, bool) {
-	idx, ok := manager.entityToSignature[entity.Id()]
-
-	if !ok {
-		return nil, false
-	}
-
-	return manager.signatures[idx], true
-}
-
-func (manager *EntityManager) removeEntity(entity *Entity) {
-	id := entity.Id()
-	// reset signature
-	sigantureIdx := manager.entityToSignature[id]
-	manager.signatures[sigantureIdx].ResetAll()
-	manager.signatures[sigantureIdx] = nil
-
-	// bookkeeping
-	// swap and pop
-	// swap last signtaure with deleted signature's values
-	lastIdx := len(manager.signatures) - 1
-	lastEntityId := manager.signatureToEntity[lastIdx]
-
-	// swap
-	manager.signatures[sigantureIdx] = manager.signatures[lastIdx]
-	manager.signatures[lastIdx] = nil
-
-	// update entities signature position
-	manager.entityToSignature[lastEntityId] = sigantureIdx
-	manager.signatureToEntity[sigantureIdx] = lastEntityId
-
-	// remove deleted entity's records
-	delete(manager.entityToSignature, id)
-	delete(manager.signatureToEntity, lastIdx)
-
-	// make removed entity's id available again
-	manager.availIds.Enqueue(id)
-}
-
-func (manager *EntityManager) empty() bool {
-	return manager.availIds.Empty()
+// Update is called every game loop
+func (mgr *EntityManager) Update(world *World) {
+	// mgr.RemoveDeadEntities()
 }
