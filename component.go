@@ -4,19 +4,21 @@ import (
 	"reflect"
 )
 
-func NewComponentManager() *ComponentManager {
+func NewComponentManager(storeCapacity int) *ComponentManager {
 	return &ComponentManager{
+		capacity:        storeCapacity,
 		typeToComponent: make(map[reflect.Type]int),
 	}
 }
 
 type ComponentManager struct {
+	capacity        int
 	components      []*Store
 	typeToComponent map[reflect.Type]int
 }
 
 func (mgr *ComponentManager) NewStore(component reflect.Type) {
-	var store = NewStore(component)
+	var store = NewStore(component, mgr.capacity)
 	var idx = len(mgr.components)
 
 	mgr.components = append(mgr.components, store)
@@ -30,12 +32,16 @@ func (mgr *ComponentManager) GetData(id int, component interface{}) bool {
 	storeId, ok := mgr.GetStoreId(t)
 
 	if !ok {
-		return ok
+		return false
 	}
 
 	var store = mgr.components[storeId]
 	var val = reflect.ValueOf(component).Elem()
-	var got, _ = store.Get(id)
+	got, ok := store.Get(id)
+
+	if !ok {
+		return false
+	}
 
 	val.Set(got)
 
@@ -95,35 +101,48 @@ func (mgr *ComponentManager) OnRemove(world *World) {
 func (mgr *ComponentManager) Update(world *World) {
 }
 
-func NewStore(t reflect.Type) *Store {
+func NewStore(t reflect.Type, capacity int) *Store {
 	return &Store{
+		capacity:       capacity,
 		Data:           reflect.MakeSlice(reflect.SliceOf(t), 0, 0),
-		idToDataLookup: make(map[int]int),
-		dataToIdLookup: make(map[int]int),
+		idToDataLookup: make([]EntityId, capacity),
+		dataToIdLookup: make([]EntityId, capacity),
 	}
 }
 
 type Store struct {
+	capacity       int
 	Data           reflect.Value
-	idToDataLookup map[EntityId]EntityId
-	dataToIdLookup map[int]EntityId
+	dataToIdLookup []EntityId
+	idToDataLookup []EntityId
 }
 
 func (s *Store) Size() EntityId {
 	return s.Data.Len()
 }
 
-func (s *Store) Get(id EntityId) (reflect.Value, bool) {
-	idx, ok := s.idToDataLookup[id]
+func (s *Store) Has(id EntityId) bool {
+	if s.dataToIdLookup[s.idToDataLookup[id]] == id && s.idToDataLookup[id] < s.Size() {
+		return true
+	}
+	return false
+}
 
-	if !ok {
+func (s *Store) Get(id EntityId) (reflect.Value, bool) {
+	if !s.Has(id) {
 		return reflect.Value{}, false
 	}
+
+	idx := s.idToDataLookup[id]
 
 	return s.Data.Index(idx), true // ! or s.Data.Index(idx).Addr().Elem()
 }
 
 func (s *Store) Insert(id EntityId, value reflect.Value) {
+	if s.Size() >= s.capacity {
+		panic("Full component store.")
+	}
+
 	idx := s.Data.Len()
 	s.Data = reflect.Append(s.Data, value)
 	s.idToDataLookup[id] = idx
@@ -133,13 +152,13 @@ func (s *Store) Insert(id EntityId, value reflect.Value) {
 // This function removes the data of the given id by performing
 // a move and pop with the last element.
 func (s *Store) Remove(id EntityId) bool {
-	idx, ok := s.idToDataLookup[id]
-	lastIdx := s.Data.Len() - 1
-	lastOwnerId := s.dataToIdLookup[lastIdx]
-
-	if !ok {
+	if !s.Has(id) {
 		return false
 	}
+
+	idx := s.idToDataLookup[id]
+	lastIdx := s.Data.Len() - 1
+	lastOwnerId := s.dataToIdLookup[lastIdx]
 
 	// replace target data with the last element and create new slice excluding the value
 	s.Data.Index(idx).Set(s.Data.Index(lastIdx))
@@ -150,10 +169,6 @@ func (s *Store) Remove(id EntityId) bool {
 	// repositioned data
 	s.idToDataLookup[lastOwnerId] = idx
 	s.dataToIdLookup[idx] = lastOwnerId
-	delete(s.dataToIdLookup, lastIdx)
-
-	// removed data
-	delete(s.idToDataLookup, id)
 
 	return true
 }

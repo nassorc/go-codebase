@@ -10,7 +10,7 @@ const SIG_SIZE = 16
 func CreateWorld(engine *Engine, size int) *World {
 	var entityMgr = NewEntityManager(size)
 	var systemMgr = NewSystemManager()
-	var componentMgr = NewComponentManager()
+	var componentMgr = NewComponentManager(size)
 
 	return &World{
 		engine,
