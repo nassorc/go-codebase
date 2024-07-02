@@ -50,6 +50,8 @@ func (e *Engine) Run() {
 		{
 			rl.ClearBackground(rl.Black)
 
+			rl.BeginDrawing()
+
 			if e.isChangeGamePending {
 				// fmt.Println("SWITCHING SCENES")
 
@@ -68,6 +70,8 @@ func (e *Engine) Run() {
 			}
 
 			e.game.Update()
+
+			rl.EndDrawing()
 
 		}
 	}
