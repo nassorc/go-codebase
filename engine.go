@@ -47,7 +47,6 @@ func (e *Engine) Run() {
 	defer e.Close()
 
 	for !rl.WindowShouldClose() {
-		rl.BeginDrawing()
 		{
 			rl.ClearBackground(rl.Black)
 
@@ -71,12 +70,11 @@ func (e *Engine) Run() {
 			e.game.Update()
 
 		}
-		rl.EndDrawing()
 	}
 }
 
 func (e *Engine) Init() {
-	rl.InitWindow(500, 500, "Scene Title")
+	rl.InitWindow(800, 576, "Scene Title")
 	rl.SetTargetFPS(60)
 }
 
