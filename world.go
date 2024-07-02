@@ -37,7 +37,7 @@ func (world *World) RegisterSystem(system System, components ...interface{}) {
 		sig.Set(id)
 	}
 
-	world.systemMgr.Register(system, sig)
+	world.systemMgr.Register(system, *sig)
 }
 
 func (w *World) RegisterComponents(components ...interface{}) {

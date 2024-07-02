@@ -5,19 +5,19 @@ type System func(*World, []EntityHandle)
 func NewSystemManager() *SystemManager {
 	return &SystemManager{
 		entityStore:      make(map[string][]EntityHandle),
-		storeToSignature: make(map[string]*Signature),
+		storeToSignature: make(map[string]Signature),
 	}
 }
 
 type SystemManager struct {
 	systems          []System
-	systemSignatures []*Signature
+	systemSignatures []Signature
 
 	entityStore      map[string][]EntityHandle
-	storeToSignature map[string]*Signature
+	storeToSignature map[string]Signature
 }
 
-func (mgr *SystemManager) Register(system System, signature *Signature) {
+func (mgr *SystemManager) Register(system System, signature Signature) {
 	// create store
 	mgr.CreateStore(signature)
 
@@ -25,7 +25,7 @@ func (mgr *SystemManager) Register(system System, signature *Signature) {
 	mgr.systemSignatures = append(mgr.systemSignatures, signature)
 }
 
-func (mgr *SystemManager) CreateStore(signature *Signature) {
+func (mgr *SystemManager) CreateStore(signature Signature) {
 	_, ok := mgr.entityStore[signature.String()]
 	if !ok {
 		mgr.entityStore[signature.String()] = make([]EntityHandle, 0)
@@ -36,10 +36,10 @@ func (mgr *SystemManager) CreateStore(signature *Signature) {
 func (mgr *SystemManager) NewEntity(entity EntityHandle) {
 	// add entity to store
 	for key := range mgr.entityStore {
-		var storeSig = mgr.storeToSignature[key].Int()
+		var storeSig = mgr.storeToSignature[key]
 		var entitySig = entity.Signature().Int()
 
-		if (storeSig & entitySig) == storeSig {
+		if (storeSig.Int() & entitySig) == storeSig.Int() {
 			mgr.entityStore[key] = append(mgr.entityStore[key], entity)
 		}
 	}
@@ -47,8 +47,8 @@ func (mgr *SystemManager) NewEntity(entity EntityHandle) {
 
 func (mgr *SystemManager) RemoveEntity(entity EntityId, entitySig *Signature) {
 	for key := range mgr.entityStore {
-		var storeSig = mgr.storeToSignature[key].Int()
-		if (storeSig & entitySig.Int()) == storeSig {
+		var storeSig = mgr.storeToSignature[key]
+		if (storeSig.Int() & entitySig.Int()) == storeSig.Int() {
 			for idx := 0; idx < len(mgr.entityStore[key]); idx++ {
 				// find entities idx in store
 				if entity == mgr.entityStore[key][idx].Entity() {
@@ -75,7 +75,6 @@ func (mgr *SystemManager) Update(world *World) {
 	// call systems
 	for idx, system := range mgr.systems {
 		var signature = mgr.systemSignatures[idx]
-		// var entities = world.GetEntityStore(signature.String())
 		var entities = mgr.entityStore[signature.String()]
 		system(world, entities)
 	}
