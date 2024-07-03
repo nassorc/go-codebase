@@ -3,17 +3,20 @@ package gandalf
 import (
 	"fmt"
 	"reflect"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 const SIG_SIZE = 16
 
-func CreateWorld(engine *Engine, size int) *World {
+func CreateWorld(size int, engine *Engine, assetMgr *AssetManager) *World {
 	var entityMgr = NewEntityManager(size)
 	var systemMgr = NewSystemManager()
 	var componentMgr = NewComponentManager(size)
 
 	return &World{
 		engine,
+		assetMgr,
 		entityMgr,
 		systemMgr,
 		componentMgr,
@@ -22,6 +25,7 @@ func CreateWorld(engine *Engine, size int) *World {
 
 type World struct {
 	engine       *Engine
+	assetMgr     *AssetManager
 	entityMgr    *EntityManager
 	systemMgr    *SystemManager
 	componentMgr *ComponentManager
@@ -99,6 +103,7 @@ func (world *World) Tick() {
 	world.componentMgr.OnRemove(world)
 	world.entityMgr.OnRemove(world)
 
+	world.assetMgr.update()
 	world.entityMgr.Update(world)
 	world.componentMgr.Update(world)
 	world.systemMgr.Update(world)
@@ -106,4 +111,20 @@ func (world *World) Tick() {
 
 func (w *World) ChangeScene(game Scene) {
 	w.engine.ChangeScene(game)
+}
+
+func (w *World) LoadTexture(name string, path string) error {
+	return w.assetMgr.loadTexture(name, path)
+}
+
+func (w *World) LoadAnimation(animName string, textName string, totalFrames int, src rl.Rectangle, frmOffset rl.Vector2, scale float32, rotation float32, speed float32) bool {
+	return w.assetMgr.loadAnimation(animName, textName, totalFrames, src, frmOffset, scale, rotation, speed)
+}
+
+func (w *World) GetTexture(name string) (rl.Texture2D, bool) {
+	return w.assetMgr.getTexture(name)
+}
+
+func (w *World) GetAnimation(name string) (*Animation, bool) {
+	return w.assetMgr.getAnimation(name)
 }
