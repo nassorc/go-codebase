@@ -1,6 +1,6 @@
 package gandalf
 
-type System func(*World, []EntityHandle)
+type System func([]EntityHandle)
 
 func NewSystemManager() *SystemManager {
 	return &SystemManager{
@@ -76,6 +76,6 @@ func (mgr *SystemManager) Update(world *World) {
 	for idx, system := range mgr.systems {
 		var signature = mgr.systemSignatures[idx]
 		var entities = mgr.entityStore[signature.String()]
-		system(world, entities)
+		system(entities)
 	}
 }
