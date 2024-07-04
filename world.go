@@ -44,6 +44,18 @@ func (world *World) RegisterSystem(system System, components ...interface{}) {
 	world.systemMgr.Register(system, *sig)
 }
 
+func (world *World) RegisterSystem2(system System, components ...ComponentID) {
+	var sig = NewSignature(SIG_SIZE)
+
+	// create system signature
+	for _, component := range components {
+		var id, _ = world.componentMgr.GetStoreId(component)
+		sig.Set(id)
+	}
+
+	world.systemMgr.Register(system, *sig)
+}
+
 func (w *World) RegisterComponents(components ...interface{}) {
 	for _, component := range components {
 		t := reflect.TypeOf(component)
@@ -53,6 +65,16 @@ func (w *World) RegisterComponents(components ...interface{}) {
 		}
 
 		w.componentMgr.NewStore(t)
+	}
+}
+
+func (w *World) RegisterComponents2(components ...ComponentID) {
+	for _, component := range components {
+		if component.Kind() != reflect.Pointer {
+			panic("Add component failed. Component is not a pointer type.")
+		}
+
+		w.componentMgr.NewStore(component)
 	}
 }
 
