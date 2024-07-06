@@ -10,7 +10,8 @@ import (
 type Animation struct {
 	Texture     rl.Texture2D
 	Src         rl.Rectangle // sprite
-	FrmOffset   rl.Vector2   // X and Y offset normalized to 1 unit
+	FrmSize     rl.Vector2
+	FrmOffset   rl.Vector2 // X and Y offset normalized to 1 unit
 	TotalFrames int
 	CurFrame    int
 	Speed       float32
@@ -74,14 +75,15 @@ func (mgr *AssetManager) loadTexture(name string, path string) error {
 	return nil
 }
 
-func (mgr *AssetManager) loadAnimation(animName string, textName string, totalFrames int, Src rl.Rectangle, frmOffset rl.Vector2, Scale float32, Rotation float32, Speed float32) bool {
+func (mgr *AssetManager) loadAnimation(animName string, textName string, totalFrames int, src rl.Rectangle, fmrSize rl.Vector2, frmOffset rl.Vector2, Scale float32, Rotation float32, Speed float32) bool {
 	var texture, ok = mgr.getTexture(textName)
 	if !ok {
 		return false
 	}
 	var anim = Animation{
 		Texture:     texture,
-		Src:         Src,
+		Src:         src,
+		FrmSize:     fmrSize,
 		FrmOffset:   frmOffset,
 		TotalFrames: totalFrames,
 		Scale:       Scale,

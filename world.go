@@ -139,8 +139,8 @@ func (w *World) LoadTexture(name string, path string) error {
 	return w.assetMgr.loadTexture(name, path)
 }
 
-func (w *World) LoadAnimation(animName string, textName string, totalFrames int, src rl.Rectangle, frmOffset rl.Vector2, scale float32, rotation float32, speed float32) bool {
-	return w.assetMgr.loadAnimation(animName, textName, totalFrames, src, frmOffset, scale, rotation, speed)
+func (w *World) LoadAnimation(animName string, textName string, totalFrames int, src rl.Rectangle, frmSize rl.Vector2, frmOffset rl.Vector2, scale float32, rotation float32, speed float32) bool {
+	return w.assetMgr.loadAnimation(animName, textName, totalFrames, src, frmSize, frmOffset, scale, rotation, speed)
 }
 
 func (w *World) GetTexture(name string) (rl.Texture2D, bool) {
