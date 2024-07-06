@@ -1,5 +1,7 @@
 package components
 
+import "github.com/nassorc/gandalf"
+
 func NewInput() *Input {
 	return &Input{}
 }
@@ -12,3 +14,5 @@ type Input struct {
 	Shoot    bool
 	CanShoot bool
 }
+
+var InputID = gandalf.CreateComponentID[Input]()

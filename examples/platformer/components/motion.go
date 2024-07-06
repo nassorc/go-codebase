@@ -1,6 +1,9 @@
 package components
 
-import rl "github.com/gen2brain/raylib-go/raylib"
+import (
+	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/nassorc/gandalf"
+)
 
 func NewMotion(velocity rl.Vector2, acceleration rl.Vector2) *Motion {
 	return &Motion{
@@ -13,3 +16,5 @@ type Motion struct {
 	Velocity     rl.Vector2
 	Acceleration rl.Vector2
 }
+
+var MotionID = gandalf.CreateComponentID[Motion]()
