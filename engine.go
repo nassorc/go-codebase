@@ -8,16 +8,19 @@ type Scene interface {
 	Setup(*World)
 }
 
-type GameHandle struct {
-	game  Scene
+type SceneNode struct {
+	name  string
+	scene Scene
 	world *World
+	next  *SceneNode
+	prev  *SceneNode
 }
 
-func (g *GameHandle) Update() {
-	g.world.Tick()
-}
+// func (g *SceneNode) Update() {
+// 	g.world.Tick()
+// }
 
-func NewEngine(game Scene, size int) *Engine {
+func NewEngine(scene Scene, size int) *Engine {
 	var assetMgr = NewAssetManager()
 	var engine = &Engine{
 		size:     size,
@@ -25,24 +28,26 @@ func NewEngine(game Scene, size int) *Engine {
 	}
 	var world = CreateWorld(size, engine, assetMgr)
 
-	game.Setup(world)
+	scene.Setup(world)
 
-	gameHandle := &GameHandle{
-		game,
-		world,
+	sceneNode := &SceneNode{
+		scene: scene,
+		world: world,
 	}
 
-	engine.game = gameHandle
+	engine.curScene = sceneNode
 
 	return engine
 }
 
 type Engine struct {
-	size                int
-	game                *GameHandle
-	assetMgr            *AssetManager
-	nextGame            Scene
-	isChangeGamePending bool
+	size                 int
+	curScene             *SceneNode
+	assetMgr             *AssetManager
+	newScene             Scene
+	isChangeScenePending bool
+	popScene             bool
+	pushScene            bool
 }
 
 func (e *Engine) Run() {
@@ -51,32 +56,74 @@ func (e *Engine) Run() {
 
 	for !rl.WindowShouldClose() {
 		{
-			rl.ClearBackground(rl.Black)
+			rl.ClearBackground(rl.White)
 
 			rl.BeginDrawing()
 
-			if e.isChangeGamePending {
-				// fmt.Println("SWITCHING SCENES")
-
+			// push scene
+			if e.pushScene {
 				world := CreateWorld(e.size, e, e.assetMgr)
 
-				gameHandle := &GameHandle{
-					game:  e.nextGame,
+				c := e.curScene
+
+				for c.next != nil {
+					c = c.next
+				}
+
+				// e.curScene = e.curScene.next
+				// ! REVERSE
+				c.next = &SceneNode{
+					scene: e.newScene,
+					prev:  c,
+				}
+
+				c.next.scene.Setup(world)
+				c.next.world = world
+
+				e.newScene = nil
+				e.pushScene = false
+
+			} else if e.isChangeScenePending { //  new scene
+				world := CreateWorld(e.size, e, e.assetMgr)
+
+				e.newScene.Setup(world)
+
+				e.curScene = &SceneNode{
+					scene: e.newScene,
 					world: world,
 				}
 
-				gameHandle.game.Setup(world)
-				e.game = gameHandle
+				// bookkeeping
+				e.isChangeScenePending = false
+				e.newScene = nil
 
-				e.nextGame = nil
-				e.isChangeGamePending = false
+			} else if e.popScene {
+				out := e.curScene
+				e.curScene = e.curScene.prev
+				e.curScene.next = nil
+				out.prev = nil
+				out.next = nil
+				out.world = nil
+				out.scene = nil
+
+				e.popScene = false
 			}
 
-			e.game.Update()
+			// e.scene.Update()
+			e.updateScenes()
 
 			rl.EndDrawing()
 
 		}
+	}
+}
+
+func (e *Engine) updateScenes() {
+	// e.curScene.world.Tick()
+	cur := e.curScene
+	for cur != nil {
+		cur.world.Tick()
+		cur = cur.next
 	}
 }
 
@@ -89,7 +136,20 @@ func (e *Engine) Close() {
 	rl.CloseWindow()
 }
 
-func (e *Engine) ChangeScene(newGame Scene) {
-	e.nextGame = newGame
-	e.isChangeGamePending = true
+func (e *Engine) PushScene(newScene Scene) {
+	e.newScene = newScene
+	e.pushScene = true
+}
+
+func (e *Engine) PopScene() {
+	e.popScene = true
+}
+
+func (e *Engine) ChangeScene(newScene Scene) {
+	e.newScene = newScene
+	e.isChangeScenePending = true
+}
+
+func (e *Engine) IsCurrentScene(name string) bool {
+	return e.curScene.name == name
 }

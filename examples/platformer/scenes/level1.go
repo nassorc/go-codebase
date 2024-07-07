@@ -18,17 +18,14 @@ type Level1 struct {
 func (scene *Level1) Setup(world *gandalf.World) {
 	scene.world = world
 
-	err := world.LoadTexture("t_witch_run", "./resources/Blue_witch/B_witch_run.png")
-	if err != nil {
-		panic(err)
-	}
+	world.LoadTexture("t_witch_run", "./resources/Blue_witch/B_witch_run.png")
 	ok := world.LoadAnimation(
 		"witch_run",
 		"t_witch_run",
 		8,
 		rl.NewRectangle(0, 0, 32, 48),
 		rl.NewVector2(32, 48),
-		rl.NewVector2(0, 0), 1, 0, 8)
+		rl.NewVector2(0, 0), 1, 0, 10)
 
 	if !ok {
 		fmt.Println("could not load animation witch_idle")
@@ -126,6 +123,9 @@ func (scene *Level1) PlayerInputSystem(entities []gandalf.EntityHandle) {
 	}
 	if rl.IsKeyDown(rl.KeyD) {
 		mx = speed
+	}
+	if rl.IsKeyPressed(rl.KeyF1) {
+		scene.world.PushScene(&Inventory{})
 	}
 
 	transform.PrevPos = transform.Pos

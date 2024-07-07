@@ -13,6 +13,7 @@ func CreateWorld(size int, engine *Engine, assetMgr *AssetManager) *World {
 	var entityMgr = NewEntityManager(size)
 	var systemMgr = NewSystemManager()
 	var componentMgr = NewComponentManager(size)
+	var camera = rl.Camera2D{}
 
 	return &World{
 		engine,
@@ -20,6 +21,7 @@ func CreateWorld(size int, engine *Engine, assetMgr *AssetManager) *World {
 		entityMgr,
 		systemMgr,
 		componentMgr,
+		camera,
 	}
 }
 
@@ -29,6 +31,7 @@ type World struct {
 	entityMgr    *EntityManager
 	systemMgr    *SystemManager
 	componentMgr *ComponentManager
+	Camera       rl.Camera2D
 }
 
 func (world *World) RegisterSystem(system System, components ...interface{}) {
@@ -131,6 +134,12 @@ func (world *World) Tick() {
 	world.systemMgr.Update(world)
 }
 
+func (w *World) PushScene(game Scene) {
+	w.engine.PushScene(game)
+}
+func (w *World) PopScene() {
+	w.engine.PopScene()
+}
 func (w *World) ChangeScene(game Scene) {
 	w.engine.ChangeScene(game)
 }

@@ -41,6 +41,7 @@ func (scene *MenuScene) Setup(world *gandalf.World) {
 	}
 
 	world.RegisterComponents(&components.Transform{})
+
 	world.RegisterSystem(scene.MenuLogic)
 	world.RegisterSystem(scene.RenderMenuItem, &components.Transform{})
 }
@@ -57,6 +58,7 @@ func (scene *MenuScene) MenuLogic(entities []gandalf.EntityHandle) {
 
 	// selecting scene
 	if rl.IsKeyPressed(rl.KeyEnter) {
+		fmt.Println("SELECTING SCENE")
 		scene.mainmenu.Select()
 	}
 }
