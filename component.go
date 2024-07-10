@@ -27,7 +27,7 @@ func (mgr *ComponentManager) NewStore(component reflect.Type) {
 	mgr.typeToComponent[component] = idx
 }
 
-func (mgr *ComponentManager) GetData(id int, component interface{}) bool {
+func (mgr *ComponentManager) Unpack(id int, component interface{}) bool {
 	var t = reflect.TypeOf(component).Elem()
 	storeId, ok := mgr.GetStoreId(t)
 

@@ -1,6 +1,9 @@
 package gandalf
 
+import "github.com/hajimehoshi/ebiten/v2"
+
 type System func([]EntityHandle)
+type RSystem func(*ebiten.Image, []EntityHandle)
 
 func NewSystemManager() *SystemManager {
 	return &SystemManager{
@@ -13,6 +16,9 @@ type SystemManager struct {
 	systems          []System
 	systemSignatures []Signature
 
+	renderers        []RSystem
+	renderSignatures []Signature
+
 	entityStore      map[string][]EntityHandle
 	storeToSignature map[string]Signature
 }
@@ -23,6 +29,13 @@ func (mgr *SystemManager) Register(system System, signature Signature) {
 
 	mgr.systems = append(mgr.systems, system)
 	mgr.systemSignatures = append(mgr.systemSignatures, signature)
+}
+
+func (mgr *SystemManager) RegisterRenderer(renderer RSystem, signature Signature) {
+	mgr.CreateStore(signature)
+
+	mgr.renderers = append(mgr.renderers, renderer)
+	mgr.renderSignatures = append(mgr.renderSignatures, signature)
 }
 
 func (mgr *SystemManager) CreateStore(signature Signature) {
@@ -71,11 +84,20 @@ func (mgr *SystemManager) OnRemove(world *World) {
 	}
 }
 
-func (mgr *SystemManager) Update(world *World) {
+func (mgr *SystemManager) Update() {
 	// call systems
 	for idx, system := range mgr.systems {
 		var signature = mgr.systemSignatures[idx]
 		var entities = mgr.entityStore[signature.String()]
 		system(entities)
+	}
+}
+
+func (mgr *SystemManager) Render(screen *ebiten.Image) {
+	// call systems
+	for idx, renderer := range mgr.renderers {
+		var signature = mgr.renderSignatures[idx]
+		var entities = mgr.entityStore[signature.String()]
+		renderer(screen, entities)
 	}
 }

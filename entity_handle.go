@@ -20,25 +20,7 @@ func (e *EntityHandle) Entity() EntityId {
 
 func (e *EntityHandle) Unpack(components ...interface{}) {
 	for _, component := range components {
-		// t := reflect.TypeOf(component)
-		// val := reflect.ValueOf(component).Elem()
-
-		// cIdx, ok := e.world.typeToComponent[t.Elem()]
-
-		e.world.componentMgr.GetData(e.entity, component)
-
-		// if !ok {
-		// 	continue
-		// }
-
-		// carr := e.world.Components[cIdx]
-		// idx, ok := carr.entityToData[e.entity.Id()]
-
-		// if !ok {
-		// 	continue
-		// }
-
-		// val.Set(carr.Data.Index(idx).Addr().Elem())
+		e.world.componentMgr.Unpack(e.entity, component)
 	}
 }
 

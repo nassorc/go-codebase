@@ -2,36 +2,33 @@ package gandalf
 
 import (
 	"fmt"
+	"image"
 	"reflect"
 
-	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 const SIG_SIZE = 16
 
-func CreateWorld(size int, engine *Engine, assetMgr *AssetManager) *World {
+func CreateWorld(size int) *World {
 	var entityMgr = NewEntityManager(size)
 	var systemMgr = NewSystemManager()
 	var componentMgr = NewComponentManager(size)
-	var camera = rl.Camera2D{}
+	var assetMgr = NewAssetManager()
 
 	return &World{
-		engine,
-		assetMgr,
 		entityMgr,
 		systemMgr,
 		componentMgr,
-		camera,
+		assetMgr,
 	}
 }
 
 type World struct {
-	engine       *Engine
-	assetMgr     *AssetManager
 	entityMgr    *EntityManager
 	systemMgr    *SystemManager
 	componentMgr *ComponentManager
-	Camera       rl.Camera2D
+	assetMgr     *AssetManager
 }
 
 func (world *World) RegisterSystem(system System, components ...interface{}) {
@@ -57,6 +54,18 @@ func (world *World) RegisterSystem2(system System, components ...ComponentID) {
 	}
 
 	world.systemMgr.Register(system, *sig)
+}
+
+func (world *World) RegisterRenderer2(system RSystem, components ...ComponentID) {
+	var sig = NewSignature(SIG_SIZE)
+
+	// create system signature
+	for _, component := range components {
+		var id, _ = world.componentMgr.GetStoreId(component)
+		sig.Set(id)
+	}
+
+	world.systemMgr.RegisterRenderer(system, *sig)
 }
 
 func (w *World) RegisterComponents(components ...interface{}) {
@@ -128,31 +137,35 @@ func (world *World) Tick() {
 	world.componentMgr.OnRemove(world)
 	world.entityMgr.OnRemove(world)
 
-	world.assetMgr.update()
+	world.assetMgr.Update()
 	world.entityMgr.Update(world)
 	world.componentMgr.Update(world)
-	world.systemMgr.Update(world)
+	world.systemMgr.Update()
 }
 
-func (w *World) PushScene(game Scene) {
-	w.engine.PushScene(game)
-}
-func (w *World) PopScene() {
-	w.engine.PopScene()
-}
-func (w *World) ChangeScene(game Scene) {
-	w.engine.ChangeScene(game)
+func (world *World) Draw(screen *ebiten.Image) {
+	world.systemMgr.Render(screen)
 }
 
-func (w *World) LoadTexture(name string, path string) error {
-	return w.assetMgr.loadTexture(name, path)
+func (w *World) LoadTexture(name string, img image.Image) error {
+	return w.assetMgr.loadTexture(name, img)
 }
 
-func (w *World) LoadAnimation(animName string, textName string, totalFrames int, src rl.Rectangle, frmSize rl.Vector2, frmOffset rl.Vector2, scale float32, rotation float32, speed float32) bool {
+func (w *World) LoadAnimation(
+	animName string,
+	textName string,
+	totalFrames int,
+	src image.Rectangle,
+	frmSize Vec2,
+	frmOffset Vec2,
+	scale float32,
+	rotation float32,
+	speed float32,
+) bool {
 	return w.assetMgr.loadAnimation(animName, textName, totalFrames, src, frmSize, frmOffset, scale, rotation, speed)
 }
 
-func (w *World) GetTexture(name string) (rl.Texture2D, bool) {
+func (w *World) GetTexture(name string) (*ebiten.Image, bool) {
 	return w.assetMgr.getTexture(name)
 }
 
