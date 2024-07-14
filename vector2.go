@@ -1,8 +1,15 @@
 package gandalf
 
+type AABB struct {
+	X1 float32
+	Y1 float32
+	X2 float32
+	Y2 float32
+}
+
 type Vec2 struct {
-	X float64
-	Y float64
+	X float32
+	Y float32
 }
 
 func Vec2Add(v1, v2 Vec2) Vec2 {
@@ -12,7 +19,7 @@ func Vec2Add(v1, v2 Vec2) Vec2 {
 	}
 }
 
-func Vec2Scale(v Vec2, scale float64) Vec2 {
+func Vec2Scale(v Vec2, scale float32) Vec2 {
 	return Vec2{
 		X: v.X * scale,
 		Y: v.Y * scale,
