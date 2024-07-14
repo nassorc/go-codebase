@@ -17,6 +17,10 @@ type ComponentManager struct {
 	typeToComponent map[reflect.Type]int
 }
 
+func (mgr *ComponentManager) GetOwners(component reflect.Type) []EntityId {
+	return mgr.components[mgr.typeToComponent[component]].GetOwners()
+}
+
 func (mgr *ComponentManager) NewStore(component reflect.Type) {
 	var store = NewStore(component, mgr.capacity)
 	var idx = len(mgr.components)
@@ -115,6 +119,10 @@ type Store struct {
 	Data           reflect.Value
 	dataToIdLookup []EntityId
 	idToDataLookup []EntityId
+}
+
+func (s *Store) GetOwners() []EntityId {
+	return s.dataToIdLookup
 }
 
 func (s *Store) Size() EntityId {

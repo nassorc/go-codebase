@@ -172,3 +172,11 @@ func (w *World) GetTexture(name string) (*ebiten.Image, bool) {
 func (w *World) GetAnimation(name string) (*Animation, bool) {
 	return w.assetMgr.getAnimation(name)
 }
+
+func (w *World) Query(component ComponentID) []EntityId {
+	return w.componentMgr.GetOwners(component)
+}
+
+func (w *World) NewEntityHandle(entity EntityId) EntityHandle {
+	return NewEntityHandle(entity, w, w.entityMgr.entitySignatures[entity])
+}
