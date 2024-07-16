@@ -22,18 +22,15 @@ func (c *Camera) Draw(world *ebiten.Image, screen *ebiten.Image) {
 func (c *Camera) Move(x float32, y float32) {
 	c.Position.X += x
 	c.Position.Y += y
-	// sw := c.viewPort.X2 / float32(c.Zoom)
-	// sh := c.viewPort.Y2 / float32(c.Zoom)
-	// if c.Position.X < 0 {
-	// 	c.Position.X = 0
-	// }
-	// if (c.Position.X + sw) > (worldWidth) {
-	// 	c.Position.X = worldWidth - sw
-	// }
-	// if c.Position.Y < 0 {
-	// 	c.Position.Y = 0
-	// }
-	// if (c.Position.Y + sh) > (worldHeight) {
-	// 	c.Position.Y = worldHeight - sh
-	// }
+}
+
+func (c *Camera) Follow(x float32, y float32) {
+	sw := c.ViewPort.X2 / float32(c.Zoom)
+	sh := c.ViewPort.Y2 / float32(c.Zoom)
+
+	x -= sw / 2
+	y -= sh / 2
+
+	c.Position.X = x
+	c.Position.Y = y
 }
