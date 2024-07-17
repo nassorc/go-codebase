@@ -10,7 +10,7 @@ import (
 
 const SIG_SIZE = 16
 
-func CreateWorld(size int) *World {
+func NewWorld(size int) *World {
 	var entityMgr = NewEntityManager(size)
 	var systemMgr = NewSystemManager()
 	var componentMgr = NewComponentManager(size)
@@ -31,20 +31,7 @@ type World struct {
 	assetMgr     *AssetManager
 }
 
-func (world *World) RegisterSystem(system System, components ...interface{}) {
-	var sig = NewSignature(SIG_SIZE)
-
-	// create system signature
-	for _, component := range components {
-		var t = reflect.TypeOf(component)
-		var id, _ = world.componentMgr.GetStoreId(t)
-		sig.Set(id)
-	}
-
-	world.systemMgr.Register(system, *sig)
-}
-
-func (world *World) RegisterSystem2(system System, components ...ComponentID) {
+func (world *World) RegisterSystem(system System, components ...ComponentID) {
 	var sig = NewSignature(SIG_SIZE)
 
 	// create system signature
@@ -56,7 +43,7 @@ func (world *World) RegisterSystem2(system System, components ...ComponentID) {
 	world.systemMgr.Register(system, *sig)
 }
 
-func (world *World) RegisterRenderer2(system RSystem, components ...ComponentID) {
+func (world *World) RegisterRenderer(system RSystem, components ...ComponentID) {
 	var sig = NewSignature(SIG_SIZE)
 
 	// create system signature
@@ -68,19 +55,7 @@ func (world *World) RegisterRenderer2(system RSystem, components ...ComponentID)
 	world.systemMgr.RegisterRenderer(system, *sig)
 }
 
-func (w *World) RegisterComponents(components ...interface{}) {
-	for _, component := range components {
-		t := reflect.TypeOf(component)
-
-		if t.Kind() != reflect.Pointer {
-			panic("Add component failed. Component is not a pointer type.")
-		}
-
-		w.componentMgr.NewStore(t)
-	}
-}
-
-func (w *World) RegisterComponents2(components ...ComponentID) {
+func (w *World) RegisterComponents(components ...ComponentID) {
 	for _, component := range components {
 		if component.Kind() != reflect.Pointer {
 			panic("Add component failed. Component is not a pointer type.")
