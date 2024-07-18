@@ -1,14 +1,16 @@
 package gandalf
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 type System func([]EntityHandle)
 type RSystem func(*ebiten.Image, []EntityHandle)
 
 func NewSystemManager() *SystemManager {
 	return &SystemManager{
-		entityStore:      make(map[string][]EntityHandle),
-		storeToSignature: make(map[string]Signature),
+		stores:   make(map[string]*EntityStore),
+		storeSig: make(map[string]Signature),
 	}
 }
 
@@ -19,8 +21,8 @@ type SystemManager struct {
 	renderers        []RSystem
 	renderSignatures []Signature
 
-	entityStore      map[string][]EntityHandle
-	storeToSignature map[string]Signature
+	stores   map[string]*EntityStore
+	storeSig map[string]Signature
 }
 
 func (mgr *SystemManager) Register(system System, signature Signature) {
@@ -39,39 +41,24 @@ func (mgr *SystemManager) RegisterRenderer(renderer RSystem, signature Signature
 }
 
 func (mgr *SystemManager) CreateStore(signature Signature) {
-	_, ok := mgr.entityStore[signature.String()]
+	_, ok := mgr.stores[signature.String()]
+	// _, ok := mgr.entityStore[signature.String()]
 	if !ok {
-		mgr.entityStore[signature.String()] = make([]EntityHandle, 0)
-		mgr.storeToSignature[signature.String()] = signature
+		mgr.stores[signature.String()] = NewEntityStore()
+		mgr.storeSig[signature.String()] = signature
 	}
 }
 
 func (mgr *SystemManager) NewEntity(entity EntityHandle) {
 	// add entity to store
-	for key := range mgr.entityStore {
-		var storeSig = mgr.storeToSignature[key]
-		var entitySig = entity.Signature().Int()
+	for key := range mgr.stores {
+		var storeSig = mgr.storeSig[key]
+		var entitySig = entity.Signature()
 
-		if (storeSig.Int() & entitySig) == storeSig.Int() {
-			mgr.entityStore[key] = append(mgr.entityStore[key], entity)
-		}
-	}
-}
-
-func (mgr *SystemManager) RemoveEntity(entity EntityId, entitySig *Signature) {
-	for key := range mgr.entityStore {
-		var storeSig = mgr.storeToSignature[key]
+		// check if intersection of store and entity signatures is store signature
 		if (storeSig.Int() & entitySig.Int()) == storeSig.Int() {
-			for idx := 0; idx < len(mgr.entityStore[key]); idx++ {
-				// find entities idx in store
-				if entity == mgr.entityStore[key][idx].Entity() {
-					// swap and pop with lastIdx
-					lastIdx := len(mgr.entityStore[key]) - 1
-					mgr.entityStore[key][idx] = mgr.entityStore[key][lastIdx]
-					mgr.entityStore[key] = mgr.entityStore[key][0:lastIdx]
-					break
-				}
-			}
+			store := mgr.stores[key]
+			store.Insert(entity)
 		}
 	}
 }
@@ -79,8 +66,31 @@ func (mgr *SystemManager) RemoveEntity(entity EntityId, entitySig *Signature) {
 func (mgr *SystemManager) OnRemove(world *World) {
 	// remove dead entities
 	for _, entity := range world.GetDeadEntities() {
-		var sig = world.GetEntitySignature(entity)
-		mgr.RemoveEntity(entity, sig)
+		var eSig = world.GetEntitySignature(entity)
+
+		// loop through each store
+		for key := range mgr.stores {
+			var storeSig = mgr.storeSig[key]
+			var store = mgr.stores[key]
+			// entity signature intersects store signature and store has entity
+			if (storeSig.Int()&eSig.Int()) == storeSig.Int() && store.Has(entity) {
+				// performs swap and pop with last element to remove entity
+				// get position
+				idx := store.EntityToIdxLookup[entity]
+				lastIdx := store.size - 1
+				lastOwnerId := store.idxToEntityLookup[lastIdx]
+
+				// swap ----------------------------------------------------------
+				store.Entities[idx], store.Entities[lastIdx] = store.Entities[lastIdx], store.Entities[idx]
+
+				// bookkeeping ---------------------------------------------------
+				store.EntityToIdxLookup[lastOwnerId] = idx // owner to idx position
+				store.idxToEntityLookup[idx] = lastOwnerId // idx position to owner
+
+				// pop ------------------------------------------------------------
+				store.size -= 1
+			}
+		}
 	}
 }
 
@@ -88,8 +98,9 @@ func (mgr *SystemManager) Update() {
 	// call systems
 	for idx, system := range mgr.systems {
 		var signature = mgr.systemSignatures[idx]
-		var entities = mgr.entityStore[signature.String()]
-		system(entities)
+		var store = mgr.stores[signature.String()]
+		var entities = store.Entities
+		system(entities[:store.size])
 	}
 }
 
@@ -97,7 +108,47 @@ func (mgr *SystemManager) Render(screen *ebiten.Image) {
 	// call systems
 	for idx, renderer := range mgr.renderers {
 		var signature = mgr.renderSignatures[idx]
-		var entities = mgr.entityStore[signature.String()]
-		renderer(screen, entities)
+		var store = mgr.stores[signature.String()]
+		var entities = store.Entities
+
+		renderer(screen, entities[:store.size])
 	}
+}
+
+func NewEntityStore() *EntityStore {
+	return &EntityStore{
+		Entities:          make([]EntityHandle, 10),
+		EntityToIdxLookup: make([]int, 10),
+		idxToEntityLookup: make([]int, 10),
+	}
+}
+
+// ! Duplicate concept: ComponentStore
+type EntityStore struct {
+	Entities          []EntityHandle // dense set
+	EntityToIdxLookup []int          // sparse set
+	idxToEntityLookup []int          // reverse set: Given index i, map owner id to Entities.
+	size              int
+}
+
+func (s EntityStore) Has(id EntityId) bool {
+	return s.idxToEntityLookup[s.idxToEntityLookup[id]] == id && s.idxToEntityLookup[id] < s.size
+}
+
+func (s *EntityStore) Insert(entity EntityHandle) bool {
+	id := entity.Entity()
+	if s.Has(id) {
+		return true
+	}
+
+	// add entity to list
+	s.Entities[s.size] = entity
+
+	// bookkeeping
+	s.EntityToIdxLookup[id] = s.size
+	s.idxToEntityLookup[s.size] = id
+
+	s.size += 1
+
+	return false
 }
