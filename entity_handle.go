@@ -1,6 +1,6 @@
 package gandalf
 
-func NewEntityHandle(entity EntityId, world *World, signature *Signature) EntityHandle {
+func NewEntityHandle(entity EntityId, world *World, signature Signature) EntityHandle {
 	return EntityHandle{
 		world,
 		entity,
@@ -11,7 +11,7 @@ func NewEntityHandle(entity EntityId, world *World, signature *Signature) Entity
 type EntityHandle struct {
 	world     *World
 	entity    EntityId
-	signature *Signature
+	signature Signature
 }
 
 func (e *EntityHandle) Entity() EntityId {
@@ -24,7 +24,7 @@ func (e *EntityHandle) Unpack(components ...interface{}) {
 	}
 }
 
-func (e *EntityHandle) Signature() *Signature {
+func (e *EntityHandle) Signature() Signature {
 	return e.signature
 }
 

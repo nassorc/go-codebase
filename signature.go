@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-func NewSignature(size int) *Signature {
+func NewSignature(size int) Signature {
 	signature := make([]bool, size)
 
-	return &Signature{signature}
+	return Signature{signature}
 }
 
 type Signature struct {

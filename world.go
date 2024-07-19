@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"reflect"
+	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -40,7 +41,7 @@ func (world *World) RegisterSystem(system System, components ...ComponentID) {
 		sig.Set(id)
 	}
 
-	world.systemMgr.Register(system, *sig)
+	world.systemMgr.Register(system, sig)
 }
 
 func (world *World) RegisterRenderer(system RSystem, components ...ComponentID) {
@@ -52,7 +53,7 @@ func (world *World) RegisterRenderer(system RSystem, components ...ComponentID) 
 		sig.Set(id)
 	}
 
-	world.systemMgr.RegisterRenderer(system, *sig)
+	world.systemMgr.RegisterRenderer(system, sig)
 }
 
 func (w *World) RegisterComponents(components ...ComponentID) {
@@ -95,11 +96,54 @@ func (world *World) RemoveEntity(entity EntityId) {
 	world.entityMgr.ScheduleEntityRemoval(entity)
 }
 
+func (world *World) AddComponent(entity EntityId, component interface{}) {
+	ok := world.componentMgr.AddDataToStore(entity, component)
+
+	if !ok {
+		panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
+	}
+
+	t := reflect.TypeOf(component)
+	storeId, ok := world.componentMgr.GetStoreId(t)
+
+	if !ok {
+		panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
+	}
+
+	orgSig := world.entityMgr.GetSignature(entity)
+	sig := NewSignature(SIG_SIZE)
+	sig.signature = slices.Clone(orgSig.signature)
+
+	sig.Set(storeId)
+
+	world.systemMgr.OnSignatureEntityChange(NewEntityHandle(entity, world, sig))
+}
+
+func (world *World) RemoveComponent(entity EntityId, component ComponentID) {
+	sig := world.entityMgr.GetSignature(entity)
+	id, ok := world.componentMgr.GetStoreId(component)
+
+	if !ok {
+		panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
+	}
+
+	ok = world.componentMgr.RemoveData(entity, component)
+
+	if !ok {
+		panic(fmt.Sprintf("failed to remove %v", reflect.TypeOf(component)))
+	}
+
+	world.entityMgr.UpdateSignature(entity, sig)
+	sig.Reset(id)
+
+	world.systemMgr.OnSignatureEntityChange(NewEntityHandle(entity, world, sig))
+}
+
 func (world *World) GetDeadEntities() []EntityId {
 	return world.entityMgr.GetEntitiesToRemove()
 }
 
-func (world *World) GetEntitySignature(entity EntityId) *Signature {
+func (world *World) GetEntitySignature(entity EntityId) Signature {
 	return world.entityMgr.GetSignature(entity)
 }
 

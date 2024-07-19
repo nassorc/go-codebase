@@ -102,7 +102,7 @@ func TestInt(t *testing.T) {
 	}
 }
 
-func compareSignature(t *testing.T, got *Signature, expected string) {
+func compareSignature(t *testing.T, got Signature, expected string) {
 	if got.String() != expected {
 		t.Errorf("expected=%s, got=%s", got.String(), expected)
 	}

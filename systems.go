@@ -63,6 +63,24 @@ func (mgr *SystemManager) NewEntity(entity EntityHandle) {
 	}
 }
 
+// 0010
+func (mgr *SystemManager) OnSignatureEntityChange(entity EntityHandle) {
+	for key := range mgr.stores {
+		var storeSig = mgr.storeSig[key]
+		var store = mgr.stores[storeSig.String()]
+		var eSig = entity.Signature()
+
+		// if new entity signature matches a system signature, add entity to system entity list
+		if !store.Has(entity.Entity()) && (storeSig.Int()&eSig.Int()) == storeSig.Int() {
+			store.Insert(entity)
+		}
+		if store.Has(entity.Entity()) && (storeSig.Int()&eSig.Int()) != storeSig.Int() {
+			// fmt.Println("removing")
+			store.Remove(entity.Entity())
+		}
+	}
+}
+
 func (mgr *SystemManager) OnRemove(world *World) {
 	// remove dead entities
 	for _, entity := range world.GetDeadEntities() {
@@ -74,21 +92,7 @@ func (mgr *SystemManager) OnRemove(world *World) {
 			var store = mgr.stores[key]
 			// entity signature intersects store signature and store has entity
 			if (storeSig.Int()&eSig.Int()) == storeSig.Int() && store.Has(entity) {
-				// performs swap and pop with last element to remove entity
-				// get position
-				idx := store.EntityToIdxLookup[entity]
-				lastIdx := store.size - 1
-				lastOwnerId := store.idxToEntityLookup[lastIdx]
-
-				// swap ----------------------------------------------------------
-				store.Entities[idx], store.Entities[lastIdx] = store.Entities[lastIdx], store.Entities[idx]
-
-				// bookkeeping ---------------------------------------------------
-				store.EntityToIdxLookup[lastOwnerId] = idx // owner to idx position
-				store.idxToEntityLookup[idx] = lastOwnerId // idx position to owner
-
-				// pop ------------------------------------------------------------
-				store.size -= 1
+				store.Remove(entity)
 			}
 		}
 	}
@@ -115,11 +119,13 @@ func (mgr *SystemManager) Render(screen *ebiten.Image) {
 	}
 }
 
+const HARDCODED_STORE_SIZE = 10
+
 func NewEntityStore() *EntityStore {
 	return &EntityStore{
-		Entities:          make([]EntityHandle, 10),
-		EntityToIdxLookup: make([]int, 10),
-		idxToEntityLookup: make([]int, 10),
+		Entities:          make([]EntityHandle, HARDCODED_STORE_SIZE),
+		EntityToIdxLookup: make([]int, HARDCODED_STORE_SIZE),
+		idxToEntityLookup: make([]int, HARDCODED_STORE_SIZE),
 	}
 }
 
@@ -132,7 +138,27 @@ type EntityStore struct {
 }
 
 func (s EntityStore) Has(id EntityId) bool {
-	return s.idxToEntityLookup[s.idxToEntityLookup[id]] == id && s.idxToEntityLookup[id] < s.size
+	return s.idxToEntityLookup[s.EntityToIdxLookup[id]] == id && s.idxToEntityLookup[id] < s.size
+}
+func (s *EntityStore) Remove(id EntityId) bool {
+	if !s.Has(id) {
+		return false
+	}
+	idx := s.EntityToIdxLookup[id]
+	lastIdx := s.size - 1
+	lastOwnerId := s.idxToEntityLookup[lastIdx]
+
+	// swap ----------------------------------------------------------
+	s.Entities[idx], s.Entities[lastIdx] = s.Entities[lastIdx], s.Entities[idx]
+
+	// bookkeeping ---------------------------------------------------
+	s.EntityToIdxLookup[lastOwnerId] = idx // owner to idx position
+	s.idxToEntityLookup[idx] = lastOwnerId // idx position to owner
+
+	// pop ------------------------------------------------------------
+	s.size -= 1
+
+	return true
 }
 
 func (s *EntityStore) Insert(entity EntityHandle) bool {
