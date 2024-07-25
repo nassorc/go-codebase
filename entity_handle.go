@@ -1,33 +1,36 @@
 package gandalf
 
-func NewEntityHandle(entity EntityId, world *World, signature Signature) EntityHandle {
-	return EntityHandle{
-		world,
-		entity,
-		signature,
-	}
+func NewEntityHandle(world *World, entity EntityId) EntityHandle {
+	return EntityHandle{entity, world}
 }
 
 type EntityHandle struct {
-	world     *World
-	entity    EntityId
-	signature Signature
+	id    EntityId
+	world *World
 }
 
-func (e *EntityHandle) Entity() EntityId {
-	return e.entity
+func (e *EntityHandle) Add(component interface{}) {
+	e.world.AddComponent(e.Id(), component)
+}
+
+func (e *EntityHandle) Destroy() {
+	e.world.RemoveEntity(e.Id())
+}
+
+func (e *EntityHandle) Id() EntityId {
+	return e.id
+}
+
+func (e *EntityHandle) Remove(component ComponentID) {
+	e.world.RemoveComponent(e.Id(), component)
 }
 
 func (e *EntityHandle) Unpack(components ...interface{}) {
 	for _, component := range components {
-		e.world.componentMgr.Unpack(e.entity, component)
+		e.world.componentMgr.Unpack(e.Id(), component)
 	}
 }
 
 func (e *EntityHandle) Signature() Signature {
-	return e.signature
-}
-
-func (e *EntityHandle) Destroy() {
-	e.world.RemoveEntity(e.Entity())
+	return e.world.EntitySignature(e.Id())
 }
