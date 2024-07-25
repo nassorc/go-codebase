@@ -2,7 +2,6 @@ package gandalf
 
 import (
 	"fmt"
-	"image"
 	"reflect"
 	"slices"
 
@@ -15,13 +14,11 @@ func NewWorld(size int) *World {
 	var entityMgr = NewEntityManager(size)
 	var systemMgr = NewSystemManager()
 	var componentMgr = NewComponentManager(size)
-	var assetMgr = NewAssetManager()
 
 	return &World{
 		entityMgr,
 		systemMgr,
 		componentMgr,
-		assetMgr,
 	}
 }
 
@@ -29,7 +26,6 @@ type World struct {
 	entityMgr    *EntityManager
 	systemMgr    *SystemManager
 	componentMgr *ComponentManager
-	assetMgr     *AssetManager
 }
 
 func (world *World) RegisterSystem(system System, components ...ComponentID) {
@@ -156,7 +152,6 @@ func (world *World) Tick() {
 	world.componentMgr.OnRemove(world)
 	world.entityMgr.OnRemove(world)
 
-	world.assetMgr.Update()
 	world.entityMgr.Update(world)
 	world.componentMgr.Update(world)
 	world.systemMgr.Update()
@@ -166,30 +161,6 @@ func (world *World) Draw(screen *ebiten.Image) {
 	world.systemMgr.Render(screen)
 }
 
-func (w *World) LoadTexture(name string, img image.Image) error {
-	return w.assetMgr.loadTexture(name, img)
-}
-
-func (w *World) LoadAnimation(
-	animName string,
-	textName string,
-	totalFrames int,
-	src image.Rectangle,
-	frmSize Vec2,
-	frmOffset Vec2,
-	scale float32,
-	rotation float32,
-	speed float32,
-) bool {
-	return w.assetMgr.loadAnimation(animName, textName, totalFrames, src, frmSize, frmOffset, scale, rotation, speed)
-}
-
-func (w *World) GetTexture(name string) (*ebiten.Image, bool) {
-	return w.assetMgr.getTexture(name)
-}
-
-func (w *World) GetAnimation(name string) (*Animation, bool) {
-	return w.assetMgr.getAnimation(name)
 }
 
 func (w *World) Query(component ComponentID) []EntityId {
