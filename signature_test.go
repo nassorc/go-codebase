@@ -102,6 +102,36 @@ func TestInt(t *testing.T) {
 	}
 }
 
+func TestIsSubset(t *testing.T) {
+	s := NewSignature(4)
+	tt := NewSignature(4)
+
+	s.Set(1)
+	s.Set(3)
+
+	if s.IsSubset(tt) {
+		t.Errorf("Expected=%v, Got=%v", false, true)
+	}
+
+	tt.Set(2)
+
+	if s.IsSubset(tt) {
+		t.Errorf("Expected=%v, Got=%v", false, true)
+	}
+
+	tt.Set(1)
+
+	if s.IsSubset(tt) {
+		t.Errorf("Expected=%v, Got=%v", false, true)
+	}
+
+	tt.Set(3)
+
+	if !s.IsSubset(tt) {
+		t.Errorf("Expected=%v, Got=%v", true, false)
+	}
+}
+
 func compareSignature(t *testing.T, got Signature, expected string) {
 	if got.String() != expected {
 		t.Errorf("expected=%s, got=%s", got.String(), expected)

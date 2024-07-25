@@ -16,31 +16,35 @@ type Signature struct {
 	signature []bool
 }
 
-func (s *Signature) Set(idx int) error {
+func (s *Signature) IsEmpty() bool {
+	if len(s.signature) > 0 {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (s *Signature) IsSubset(other Signature) bool {
+	return (s.Int() & other.Int()) == s.Int()
+}
+
+func (s *Signature) IsValidIdx(idx int) error {
 	if idx < 0 || idx >= len(s.signature) {
 		return fmt.Errorf("idx is out of bounds")
 	}
-
-	s.signature[idx] = true
-
 	return nil
 }
 
-func (s *Signature) SetAll() error {
+func (s *Signature) Int() int {
+	out := 0
+
 	for idx := 0; idx < len(s.signature); idx++ {
-		err := s.Set(idx)
-		if err != nil {
-			return err
+		if s.signature[idx] {
+			out |= int(math.Pow(2, float64(idx)))
 		}
 	}
-	return nil
-}
 
-func (s *Signature) Test(idx int) (bool, error) {
-	if idx < 0 || idx >= len(s.signature) {
-		return false, fmt.Errorf("idx is out of bounds")
-	}
-	return s.signature[idx], nil
+	return out
 }
 
 func (s *Signature) Reset(idx int) error {
@@ -63,6 +67,26 @@ func (s *Signature) ResetAll() error {
 	return nil
 }
 
+func (s *Signature) Set(idx int) error {
+	if idx < 0 || idx >= len(s.signature) {
+		return fmt.Errorf("idx is out of bounds")
+	}
+
+	s.signature[idx] = true
+
+	return nil
+}
+
+func (s *Signature) SetAll() error {
+	for idx := 0; idx < len(s.signature); idx++ {
+		err := s.Set(idx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *Signature) String() string {
 	var b strings.Builder
 
@@ -77,29 +101,9 @@ func (s *Signature) String() string {
 	return b.String()
 }
 
-func (s *Signature) isValidIdx(idx int) error {
+func (s *Signature) Test(idx int) (bool, error) {
 	if idx < 0 || idx >= len(s.signature) {
-		return fmt.Errorf("idx is out of bounds")
+		return false, fmt.Errorf("idx is out of bounds")
 	}
-	return nil
-}
-
-func (s *Signature) IsEmpty() bool {
-	if len(s.signature) > 0 {
-		return true
-	} else {
-		return false
-	}
-}
-
-func (s *Signature) Int() int {
-	out := 0
-
-	for idx := 0; idx < len(s.signature); idx++ {
-		if s.signature[idx] {
-			out |= int(math.Pow(2, float64(idx)))
-		}
-	}
-
-	return out
+	return s.signature[idx], nil
 }
