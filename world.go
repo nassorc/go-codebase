@@ -10,22 +10,26 @@ import (
 
 const SIG_SIZE = 16
 
-func NewWorld(size int) *World {
-	var entityMgr = NewEntityManager(size)
-	var systemMgr = NewSystemManager()
-	var componentMgr = NewComponentManager(size)
+func NewWorld(worldSize int, maxComponentSize int) *World {
+	var entityMgr = NewEntityManager(worldSize)
+	var systemMgr = NewSystemManager(worldSize)
+	var componentMgr = NewComponentManager(worldSize)
 
 	return &World{
 		entityMgr,
 		systemMgr,
 		componentMgr,
+		worldSize,
+		maxComponentSize,
 	}
 }
 
 type World struct {
-	entityMgr    *EntityManager
-	systemMgr    *SystemManager
-	componentMgr *ComponentManager
+	entityMgr        *EntityManager
+	systemMgr        *SystemManager
+	componentMgr     *ComponentManager
+	worldSize        int
+	maxComponentSize int
 }
 
 func (world *World) RegisterSystem(system System, components ...ComponentID) {
@@ -40,7 +44,7 @@ func (world *World) RegisterSystem(system System, components ...ComponentID) {
 	world.systemMgr.Register(system, sig)
 }
 
-func (world *World) RegisterRenderer(system RSystem, components ...ComponentID) {
+func (world *World) RegisterRenderer(system Renderer, components ...ComponentID) {
 	var sig = NewSignature(SIG_SIZE)
 
 	// create system signature
@@ -62,30 +66,26 @@ func (w *World) RegisterComponents(components ...ComponentID) {
 	}
 }
 
-func (world *World) CreateEntity(components ...interface{}) EntityHandle {
-
-	var eSignature = NewSignature(SIG_SIZE)
-	var entity = world.entityMgr.CreateEntity(eSignature)
+func (world *World) Create(components ...interface{}) EntityHandle {
+	var esig = NewSignature(SIG_SIZE)
+	var entity = world.entityMgr.Create(esig)
 
 	for _, component := range components {
 		ok := world.componentMgr.AddDataToStore(entity, component)
+
 		if !ok {
 			panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
 		}
+
 		t := reflect.TypeOf(component)
-		storeId, ok := world.componentMgr.GetStoreId(t)
+		storeId, _ := world.componentMgr.GetStoreId(t)
 
-		if !ok {
-			panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
-		}
-
-		eSignature.Set(storeId)
+		esig.Set(storeId)
 	}
 
-	var entityHdl = NewEntityHandle(entity, world, eSignature)
-	world.systemMgr.NewEntity(entityHdl)
+	world.systemMgr.NewEntity(entity, esig)
 
-	return entityHdl
+	return NewEntityHandle(world, entity)
 }
 
 func (world *World) RemoveEntity(entity EntityId) {
@@ -106,17 +106,19 @@ func (world *World) AddComponent(entity EntityId, component interface{}) {
 		panic(fmt.Sprintf("Component %v is not a store", reflect.TypeOf(component)))
 	}
 
-	orgSig := world.entityMgr.GetSignature(entity)
+	orgSig := world.entityMgr.Signature(entity)
+
 	sig := NewSignature(SIG_SIZE)
 	sig.signature = slices.Clone(orgSig.signature)
 
 	sig.Set(storeId)
 
-	world.systemMgr.OnSignatureEntityChange(NewEntityHandle(entity, world, sig))
+	world.entityMgr.entitySignatures[entity] = sig
+	world.systemMgr.EntitySignatureChange(entity, sig)
 }
 
 func (world *World) RemoveComponent(entity EntityId, component ComponentID) {
-	sig := world.entityMgr.GetSignature(entity)
+	sig := world.entityMgr.Signature(entity)
 	id, ok := world.componentMgr.GetStoreId(component)
 
 	if !ok {
@@ -129,18 +131,18 @@ func (world *World) RemoveComponent(entity EntityId, component ComponentID) {
 		panic(fmt.Sprintf("failed to remove %v", reflect.TypeOf(component)))
 	}
 
-	world.entityMgr.UpdateSignature(entity, sig)
+	world.entityMgr.SetSignature(entity, sig)
 	sig.Reset(id)
 
-	world.systemMgr.OnSignatureEntityChange(NewEntityHandle(entity, world, sig))
+	world.systemMgr.EntitySignatureChange(entity, sig)
 }
 
-func (world *World) GetDeadEntities() []EntityId {
+func (world *World) DeadEntities() []EntityId {
 	return world.entityMgr.GetEntitiesToRemove()
 }
 
-func (world *World) GetEntitySignature(entity EntityId) Signature {
-	return world.entityMgr.GetSignature(entity)
+func (world *World) EntitySignature(entity EntityId) Signature {
+	return world.entityMgr.Signature(entity)
 }
 
 func (world *World) Tick() {
@@ -154,13 +156,11 @@ func (world *World) Tick() {
 
 	world.entityMgr.Update(world)
 	world.componentMgr.Update(world)
-	world.systemMgr.Update()
+	world.systemMgr.Update(world)
 }
 
 func (world *World) Draw(screen *ebiten.Image) {
-	world.systemMgr.Render(screen)
-}
-
+	world.systemMgr.Render(world, screen)
 }
 
 func (w *World) Query(component ComponentID) []EntityId {
@@ -168,5 +168,5 @@ func (w *World) Query(component ComponentID) []EntityId {
 }
 
 func (w *World) NewEntityHandle(entity EntityId) EntityHandle {
-	return NewEntityHandle(entity, w, w.entityMgr.entitySignatures[entity])
+	return NewEntityHandle(w, entity)
 }
