@@ -80,7 +80,13 @@ func (mgr *ComponentManager) RemoveData(entity EntityId, component reflect.Type)
 	}
 
 	var store = mgr.components[idx]
-	store.Remove(entity)
+
+	ok = store.Remove(entity)
+
+	if !ok {
+		panic("failed to remove data from component store.")
+	}
+
 	return true
 }
 
@@ -95,7 +101,7 @@ func (mgr *ComponentManager) GetStoreId(component reflect.Type) (int, bool) {
 }
 
 func (mgr *ComponentManager) OnRemove(world *World) {
-	for _, entity := range world.GetDeadEntities() {
+	for _, entity := range world.DeadEntities() {
 		for _, store := range mgr.components {
 			store.Remove(entity)
 		}
@@ -116,13 +122,14 @@ func NewStore(t reflect.Type, capacity int) *Store {
 
 type Store struct {
 	capacity       int
+	size           int
 	Data           reflect.Value
 	dataToIdLookup []EntityId
 	idToDataLookup []EntityId
 }
 
 func (s *Store) GetOwners() []EntityId {
-	return s.dataToIdLookup
+	return s.dataToIdLookup[:s.Data.Len()]
 }
 
 func (s *Store) Size() EntityId {
