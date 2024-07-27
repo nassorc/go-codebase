@@ -213,3 +213,109 @@ func TestEntitySignature_RemoveComponent(t *testing.T) {
 		t.Errorf("Expected=%v, Got=%v", "0000", ssig[len(ssig)-4:])
 	}
 }
+
+func BenchmarkCreateEntity(b *testing.B) {
+	type Position Vec2
+	type Velocity Vec2
+
+	var (
+		pid = CreateComponentID[Position]()
+		vid = CreateComponentID[Velocity]()
+	)
+
+	world := NewWorld(b.N, 2)
+	world.RegisterComponents(pid, vid)
+
+	for idx := 0; idx < b.N; idx++ {
+		world.Create(&Position{}, &Velocity{})
+	}
+}
+
+func BenchmarkRemoveEntity(b *testing.B) {
+	type Position Vec2
+	type Velocity Vec2
+
+	var (
+		pid = CreateComponentID[Position]()
+		vid = CreateComponentID[Velocity]()
+	)
+
+	world := NewWorld(b.N, 2)
+	world.RegisterComponents(pid, vid)
+
+	for idx := 0; idx < b.N; idx++ {
+		world.Create(&Position{}, &Velocity{})
+	}
+
+	b.ResetTimer()
+
+	for idx := 0; idx < b.N; idx++ {
+		world.RemoveEntity(idx)
+	}
+}
+
+func BenchmarkRemove10Entity(b *testing.B) {
+	type Position Vec2
+	type Velocity Vec2
+
+	var (
+		pid = CreateComponentID[Position]()
+		vid = CreateComponentID[Velocity]()
+	)
+
+	world := NewWorld(b.N, 2)
+	world.RegisterComponents(pid, vid)
+
+	for idx := 0; idx < b.N; idx++ {
+		world.Create(&Position{}, &Velocity{})
+	}
+
+	b.ResetTimer()
+
+	var count = 50
+
+	for idx := 0; idx < (b.N / count); idx++ {
+
+		for n := 0; n < count; n++ {
+			world.RemoveEntity(idx + n)
+		}
+
+	}
+}
+
+type Position Vec2
+type Velocity Vec2
+
+func MovementSystem(entities []EntityHandle) {
+	for _, entity := range entities {
+		var pos *Position
+		var vel *Velocity
+
+		entity.Unpack(&pos, &vel)
+
+		pos.X += vel.X
+		pos.Y += vel.Y
+	}
+}
+
+func BenchmarkItrEntity(b *testing.B) {
+	var (
+		pid = CreateComponentID[Position]()
+		vid = CreateComponentID[Velocity]()
+		K   = 9000
+	)
+
+	world := NewWorld(K, 2)
+	world.RegisterComponents(pid, vid)
+	world.RegisterSystem(MovementSystem, pid, vid)
+
+	for idx := 0; idx < K; idx++ {
+		world.Create(&Position{}, &Velocity{})
+	}
+
+	b.ResetTimer()
+
+	for idx := 0; idx < b.N; idx++ {
+		world.Tick()
+	}
+}
