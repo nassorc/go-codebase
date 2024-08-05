@@ -1,4 +1,4 @@
-package animation
+package assets
 
 import (
 	"bytes"
