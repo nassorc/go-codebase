@@ -177,7 +177,6 @@ func (s *Store) Insert(id EntityId, value reflect.Value) {
 // This function removes the data of the given id by performing
 // a move and pop with the last element.
 func (s *Store) Remove(id EntityId) bool {
-	if !s.Has(id) {
 		return false
 	}
 
