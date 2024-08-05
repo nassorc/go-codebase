@@ -1,7 +1,6 @@
 package gandalf
 
 import (
-	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -26,7 +25,6 @@ type Counter struct {
 
 func (c *Counter) Increment(entities []EntityHandle) {
 	// save information
-	fmt.Println(entities)
 	c.entities = entities
 
 	for _, entity := range entities {
@@ -319,3 +317,28 @@ func BenchmarkItrEntity(b *testing.B) {
 		world.Tick()
 	}
 }
+
+// func BenchmarkQuery(b *testing.B) {
+// 	var (
+// 		pid = CreateComponentID[Position]()
+// 		vid = CreateComponentID[Velocity]()
+// 		K   = 1000
+// 	)
+//
+// 	world := NewWorld(K, 2)
+// 	world.RegisterComponents(pid, vid)
+// 	world.RegisterSystem(MovementSystem, pid, vid)
+//
+// 	for idx := 0; idx < K; idx++ {
+// 		world.Create(&Position{}, &Velocity{})
+// 	}
+//
+// 	b.ResetTimer()
+//
+//   world.Query(pid)
+//
+// 	// for idx := 0; idx < b.N; idx++ {
+// 	// 	world.Tick()
+// 	// }
+//
+// }

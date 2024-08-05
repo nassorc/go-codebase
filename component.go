@@ -114,7 +114,8 @@ func (mgr *ComponentManager) Update(world *World) {
 func NewStore(t reflect.Type, capacity int) *Store {
 	return &Store{
 		capacity:       capacity,
-		Data:           reflect.MakeSlice(reflect.SliceOf(t), 0, 0),
+		size:           0,
+		Data:           reflect.MakeSlice(reflect.SliceOf(t), capacity, capacity),
 		idToDataLookup: make([]EntityId, capacity),
 		dataToIdLookup: make([]EntityId, capacity),
 	}
@@ -129,11 +130,11 @@ type Store struct {
 }
 
 func (s *Store) GetOwners() []EntityId {
-	return s.dataToIdLookup[:s.Data.Len()]
+	return s.dataToIdLookup[:s.Size()]
 }
 
 func (s *Store) Size() EntityId {
-	return s.Data.Len()
+	return s.size
 }
 
 func (s *Store) Has(id EntityId) bool {
@@ -154,14 +155,23 @@ func (s *Store) Get(id EntityId) (reflect.Value, bool) {
 }
 
 func (s *Store) Insert(id EntityId, value reflect.Value) {
-	if s.Size() >= s.capacity {
+	if (s.Size() + 1) >= s.capacity {
 		panic("Full component store.")
 	}
 
-	idx := s.Data.Len()
-	s.Data = reflect.Append(s.Data, value)
-	s.idToDataLookup[id] = idx
-	s.dataToIdLookup[idx] = id
+	if s.Has(id) {
+		idx := s.idToDataLookup[id]
+		s.Data.Index(idx).Set(value)
+	} else {
+		idx := s.Size()
+
+		s.Data.Index(idx).Set(value)
+		s.idToDataLookup[id] = idx
+		s.dataToIdLookup[idx] = id
+
+		s.size += 1
+	}
+
 }
 
 // This function removes the data of the given id by performing
