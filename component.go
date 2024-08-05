@@ -177,22 +177,22 @@ func (s *Store) Insert(id EntityId, value reflect.Value) {
 // This function removes the data of the given id by performing
 // a move and pop with the last element.
 func (s *Store) Remove(id EntityId) bool {
+	if !s.Has(id) || s.Size() == 0 {
 		return false
 	}
 
 	idx := s.idToDataLookup[id]
-	lastIdx := s.Data.Len() - 1
+	lastIdx := s.Size() - 1
 	lastOwnerId := s.dataToIdLookup[lastIdx]
 
 	// replace target data with the last element and create new slice excluding the value
 	s.Data.Index(idx).Set(s.Data.Index(lastIdx))
-	s.Data = s.Data.Slice(0, lastIdx)
+	// s.Data = s.Data.Slice(0, lastIdx)  // !
 
-	// bookkeeping
-
-	// repositioned data
+	// update data
 	s.idToDataLookup[lastOwnerId] = idx
 	s.dataToIdLookup[idx] = lastOwnerId
+	s.size -= 1
 
 	return true
 }
