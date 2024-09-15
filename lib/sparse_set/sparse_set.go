@@ -2,15 +2,13 @@ package sparse_set
 
 import "fmt"
 
-func NewSparseSet[T any](cap int) *SparseSet[T] {
-  return &SparseSet[T]{
-    size: 0,
-    cap: cap,
-    Dense: make([]T, cap, cap),
-    Sparse: make([]int, cap, cap),
-    ReverseLookup: make([]int, cap, cap),
-  }
-}
+const (
+  PAGE_SIZE = 10
+  MAX_PAGES = 1000
+)
+
+type Page [PAGE_SIZE]int
+type Pages [MAX_PAGES]*Page
 
 // Stores data that maps to a set of integers of the range 0..cap-1.
 type SparseSet[T any] struct {
@@ -19,10 +17,27 @@ type SparseSet[T any] struct {
   Dense         []T
   // Sparse's index maps to the set of integers, 0..cap-1, and its value gives the index
   // to its data in the Dense array.
-  Sparse        []int   
+  Pages         Pages // sparse set
+
   // ReverseLookup mirrors the Dense array, but contains the integer that owns the data.
   ReverseLookup []int // data index to id
 }
+
+func NewSparseSet[T any](cap int) *SparseSet[T] {
+  var pages Pages
+
+  for idx := 0; idx < MAX_PAGES; idx++ {
+    pages[idx] = nil
+  }
+
+  return &SparseSet[T]{
+    size: 0,
+    cap: cap,
+    Pages: pages,
+    ReverseLookup: make([]int, cap, cap),
+  }
+}
+
 
 func (s SparseSet[T]) panicInvalidIdx(idx int) {
   if idx < 0 || idx >= s.cap {
@@ -30,18 +45,38 @@ func (s SparseSet[T]) panicInvalidIdx(idx int) {
   }
 }
 
+
+func (s SparseSet[T]) Index(id int) any {
+  return &s.Dense[id]
+}
+
 func (s SparseSet[T]) Get(id int) (T, bool) {
-  s.panicInvalidIdx(id)
   if !s.Has(id) {
     var zero T
     return zero, false
   }
 
-  return s.Dense[s.Sparse[id]], true
+  row, col := intToPage(id)
+  return s.Dense[s.Pages[row][col]], true
 }
 
 func (s SparseSet[T]) Has(id int) bool {
-  return s.ReverseLookup[s.Sparse[id]] == id && s.Sparse[id] < s.size
+  row, col := intToPage(id)
+  page := s.Pages[row]
+
+  if page == nil {
+    return false
+  }
+
+  idx := page[col]
+
+  return s.ReverseLookup[idx] == id && idx < s.size
+}
+
+func intToPage(idx int) (row, col int) {
+  row = idx / PAGE_SIZE
+  col = idx % PAGE_SIZE
+  return
 }
 
 func (s *SparseSet[T]) Insert(id int, value T) {
@@ -50,18 +85,31 @@ func (s *SparseSet[T]) Insert(id int, value T) {
 		panic("Full component store.")
 	}
 
-	if s.Has(id) {  // update
-		idx := s.Sparse[id]
-    s.Dense[idx] = value
-	} else {  // insert
-		idx := s.size
+  row, col := intToPage(id)
 
-		s.Dense[idx] = value
-		s.Sparse[id] = idx
+  // if page does NOT exist, create page
+  if s.Pages[row] == nil {
+    s.Pages[row] = new(Page)
+  }
+
+  if s.Has(id) {
+    idx := s.Pages[row][col]
+    s.Dense[idx] = value
+  } else {
+    // set page value to idx
+    idx := s.size
+
+    // actual data is equal or larger that the current storage capacity
+    if s.size >= len(s.Dense) {
+      s.Dense = append(s.Dense, value)
+    } else {
+      s.Dense[idx] = value
+    }
+    s.Pages[row][col] = idx
 		s.ReverseLookup[idx] = id
 
 		s.size += 1
-	}
+  }
 }
 
 func (s *SparseSet[T]) Remove(id int) bool {
@@ -70,7 +118,9 @@ func (s *SparseSet[T]) Remove(id int) bool {
     return false
   }
 
-	idx := s.Sparse[id]
+	// idx := s.Sparse[id]
+  row, col := intToPage(id)
+	idx := s.Pages[row][col]
 
 	lastIdx := s.size - 1
 	lastOwnerId := s.ReverseLookup[lastIdx]
@@ -79,8 +129,10 @@ func (s *SparseSet[T]) Remove(id int) bool {
   s.Dense[idx] = s.Dense[lastIdx] // swap
 
 	// update data
-	s.Sparse[lastOwnerId] = idx
+  lrow, lcol := intToPage(lastOwnerId)
+  s.Pages[lrow][lcol] = idx
 	s.ReverseLookup[idx] = lastOwnerId
+  // s.Pages
 	s.size -= 1
 
 	return true

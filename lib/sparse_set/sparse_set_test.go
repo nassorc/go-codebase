@@ -6,9 +6,24 @@ type Counter struct {
   val int
 }
 
+func TestSparseSet_InsertAndGet(t *testing.T) {
+  store := NewSparseSet[int](5)
+  store.Insert(0, 100)
+  store.Insert(1, 200)
+
+  store.Insert(2, 300)
+  store.Insert(3, 400)
+
+  if v, _ := store.Get(0); *v != 100 {
+    t.Errorf("Expected %v, Got %v", 100, v)
+  }
+  if v, _ := store.Get(3); *v != 400 {
+    t.Errorf("Expected %v, Got %v", 400, v)
+  }
+}
+
 func TestSparseSet(t *testing.T) {
-  n := 3
-  store := NewSparseSet[Counter](n)
+  store := NewSparseSet[Counter](3)
 
   if v := store.Has(0); v {
     t.Errorf("Expected %v, Got %v", false, true)
@@ -57,7 +72,7 @@ func TestSparseSet(t *testing.T) {
   }
 }
 
-func TestSparse_InvalidationWhileLooping(t *testing.T) {
+func TestSparse_ShouldNotInvalidationWhileLooping(t *testing.T) {
   n := 3
   store := NewSparseSet[Counter](n)
   saw := []int{}

@@ -10,6 +10,14 @@ import (
 
 const SIG_SIZE = 16
 
+type World struct {
+	entityMgr        *EntityManager
+	systemMgr        *SystemManager
+	componentMgr     *ComponentManager
+	worldSize        int
+	maxComponentSize int
+}
+
 func NewWorld(worldSize int, maxComponentSize int) *World {
 	var entityMgr = NewEntityManager(worldSize)
 	var systemMgr = NewSystemManager(worldSize)
@@ -22,14 +30,6 @@ func NewWorld(worldSize int, maxComponentSize int) *World {
 		worldSize,
 		maxComponentSize,
 	}
-}
-
-type World struct {
-	entityMgr        *EntityManager
-	systemMgr        *SystemManager
-	componentMgr     *ComponentManager
-	worldSize        int
-	maxComponentSize int
 }
 
 func (world *World) RegisterSystem(system System, components ...ComponentID) {
