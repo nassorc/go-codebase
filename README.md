@@ -1,5 +1,4 @@
 # go-codebase
----
 go-codebase is a collection of libraries and tools I've implemented.
 
 ## Included libraries
