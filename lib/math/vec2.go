@@ -34,8 +34,8 @@ func Vec2Scale(v Vec2, scale float32) Vec2 {
 
 func Vec2Divide(v Vec2, divisor float32) Vec2 {
 	return Vec2{
-		X: v.X * divisor,
-		Y: v.Y * divisor,
+		X: v.X / divisor,
+		Y: v.Y / divisor,
 	}
 }
 
