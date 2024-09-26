@@ -18,11 +18,23 @@ func Vec2Add(v1, v2 Vec2) Vec2 {
 	}
 }
 
-func Vec2Subtract(v1, v2 Vec2) Vec2 {
+func (v *Vec2) Add(other Vec2) *Vec2 {
+  v.X += other.X
+  v.Y += other.Y
+  return v
+}
+
+func Vec2Sub(v1, v2 Vec2) Vec2 {
 	return Vec2{
 		X: v1.X - v2.X,
 		Y: v1.Y - v2.Y,
 	}
+}
+
+func (v *Vec2) Sub(other Vec2) *Vec2 {
+  v.X -= other.X
+  v.Y -= other.Y
+  return v
 }
 
 func Vec2Scale(v Vec2, scale float32) Vec2 {
@@ -32,21 +44,36 @@ func Vec2Scale(v Vec2, scale float32) Vec2 {
 	}
 }
 
-func Vec2Divide(v Vec2, divisor float32) Vec2 {
-	return Vec2{
-		X: v.X / divisor,
-		Y: v.Y / divisor,
-	}
+func (v *Vec2) Scale(scalar float32) *Vec2 {
+  v.X *= scalar
+  v.Y *= scalar
+  return v
 }
 
 func Vec2Normalize(v Vec2) Vec2 {
-  m := Vec2Magnitude(v)
-
-  return Vec2Divide(v, m)
+  return Vec2Scale(v, (1 / v.Length()))
 }
 
-func Vec2Magnitude(v Vec2) float32 {
+func (v *Vec2) Normalize() *Vec2 {
+  return v.Scale(1/v.Length())
+}
+
+func Vec2Length(v Vec2) float32 {
   return float32(math.Sqrt(float64(v.X * v.X + v.Y * v.Y)))
+}
+
+func (v *Vec2) Length() float32 {
+  return float32(math.Sqrt(float64(v.X*v.X + v.Y*v.Y)))
+}
+
+type Rotation struct {
+  c float32
+  s float32
+}
+
+func sincos(angle float32) Rotation {
+  a := float64(angle)
+  return Rotation{float32(math.Cos(a)), float32(math.Sin(a))}
 }
 
 type AABB struct {
