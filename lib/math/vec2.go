@@ -67,11 +67,11 @@ func (v *Vec2) Length() float32 {
 }
 
 type Rotation struct {
-  c float32
-  s float32
+  C float32
+  S float32
 }
 
-func sincos(angle float32) Rotation {
+func SinCos(angle float32) Rotation {
   a := float64(angle)
   return Rotation{float32(math.Cos(a)), float32(math.Sin(a))}
 }
