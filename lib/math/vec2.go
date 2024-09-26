@@ -66,6 +66,20 @@ func (v *Vec2) Length() float32 {
   return float32(math.Sqrt(float64(v.X*v.X + v.Y*v.Y)))
 }
 
+func (v *Vec2) RotateAt(r Rotation, pivot Vec2) *Vec2 {
+  v.Sub(pivot)
+
+  x := r.C * v.X - r.S * v.Y
+  y := r.S * v.X + r.C * v.Y
+
+  v.X = x
+  v.Y = y
+
+  v.Add(pivot)
+
+  return v
+}
+
 type Rotation struct {
   C float32
   S float32
